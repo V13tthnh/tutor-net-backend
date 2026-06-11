@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="vi">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+          font-family: 'Segoe UI', Arial, sans-serif;
+          background: #F3F4F6;
+          padding: 40px 16px;
+          color: #111827;
+        }
+        .wrapper {
+          max-width: 600px;
+          margin: 0 auto;
+        }
+
+        /* ── Header ── */
+        .header {
+          background: #4F46E5;
+          border-radius: 10px 10px 0 0;
+          padding: 24px 32px;
+          display: flex;
+          align-items: center;
+          gap: 10px;
+        }
+        .header-logo {
+          font-size: 22px;
+          font-weight: 700;
+          color: #fff;
+          letter-spacing: -0.5px;
+        }
+        .header-logo span {
+          color: #A5B4FC;
+        }
+        .header-badge {
+          margin-left: auto;
+          background: rgba(255,255,255,0.15);
+          color: #E0E7FF;
+          font-size: 12px;
+          padding: 4px 10px;
+          border-radius: 20px;
+        }
+
+        /* ── Body ── */
+        .body {
+          background: #fff;
+          padding: 36px 32px;
+          border-left: 1px solid #E5E7EB;
+          border-right: 1px solid #E5E7EB;
+        }
+        .body h2 {
+          font-size: 20px;
+          font-weight: 600;
+          color: #111827;
+          margin-bottom: 12px;
+        }
+        .body p {
+          font-size: 15px;
+          line-height: 1.7;
+          color: #374151;
+          margin-bottom: 12px;
+        }
+
+        /* ── Info box ── */
+        .info-box {
+          background: #F9FAFB;
+          border: 1px solid #E5E7EB;
+          border-radius: 8px;
+          padding: 16px 20px;
+          margin: 20px 0;
+          font-size: 14px;
+          color: #374151;
+        }
+        .info-box .row {
+          display: flex;
+          gap: 8px;
+          margin-bottom: 8px;
+        }
+        .info-box .row:last-child { margin-bottom: 0; }
+        .info-box .label {
+          font-weight: 600;
+          color: #6B7280;
+          min-width: 110px;
+        }
+
+        /* ── Message quote ── */
+        .quote {
+          border-left: 4px solid #4F46E5;
+          background: #EEF2FF;
+          color: #3730A3;
+          padding: 12px 16px;
+          border-radius: 0 6px 6px 0;
+          font-size: 14px;
+          line-height: 1.6;
+          margin: 16px 0;
+        }
+        .quote-empty {
+          color: #9CA3AF;
+          font-style: italic;
+          font-size: 14px;
+          margin: 16px 0;
+        }
+
+        /* ── Status badges ── */
+        .badge-success {
+          display: inline-block;
+          background: #DCFCE7;
+          color: #16A34A;
+          font-weight: 600;
+          padding: 3px 10px;
+          border-radius: 20px;
+          font-size: 13px;
+        }
+        .badge-danger {
+          display: inline-block;
+          background: #FEE2E2;
+          color: #DC2626;
+          font-weight: 600;
+          padding: 3px 10px;
+          border-radius: 20px;
+          font-size: 13px;
+        }
+        .badge-warning {
+          display: inline-block;
+          background: #FEF3C7;
+          color: #D97706;
+          font-weight: 600;
+          padding: 3px 10px;
+          border-radius: 20px;
+          font-size: 13px;
+        }
+
+        /* ── Rejection reason ── */
+        .rejection-box {
+          border-left: 4px solid #DC2626;
+          background: #FEF2F2;
+          color: #7F1D1D;
+          padding: 12px 16px;
+          border-radius: 0 6px 6px 0;
+          font-size: 14px;
+          line-height: 1.6;
+          margin: 16px 0;
+        }
+
+        /* ── CTA Button ── */
+        .btn-wrap { margin: 24px 0 8px; }
+        .btn {
+          display: inline-block;
+          padding: 12px 28px;
+          background: #4F46E5;
+          color: #fff !important;
+          text-decoration: none;
+          border-radius: 7px;
+          font-size: 15px;
+          font-weight: 600;
+          letter-spacing: 0.2px;
+        }
+        .btn:hover { background: #4338CA; }
+
+        /* ── Divider ── */
+        .divider {
+          border: none;
+          border-top: 1px solid #F3F4F6;
+          margin: 24px 0;
+        }
+
+        /* ── Footer ── */
+        .footer {
+          background: #F9FAFB;
+          border: 1px solid #E5E7EB;
+          border-top: none;
+          border-radius: 0 0 10px 10px;
+          padding: 20px 32px;
+          text-align: center;
+          font-size: 12px;
+          color: #9CA3AF;
+          line-height: 1.6;
+        }
+        .footer a {
+          color: #6366F1;
+          text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+<div class="wrapper">
+    <!-- Header -->
+    <div class="header">
+        <div class="header-logo">Tutor<span>Net</span></div>
+        <div class="header-badge" th:text="${badgeText} ?: 'Thông báo'">Thông báo</div>
+    </div>
+
+    <!-- Content slot -->
+    <div class="body" th:replace="~{::content}"></div>
+
+    <!-- Footer -->
+    <div class="footer">
+        © 2026 TutorNet &nbsp;·&nbsp;
+        <a href="http://localhost:3000">Trang chủ</a> &nbsp;·&nbsp;
+        <a href="http://localhost:3000/support">Hỗ trợ</a>
+        <br/>
+        Bạn nhận email này vì có hoạt động liên quan đến tài khoản TutorNet của bạn.
+    </div>
+</div>
+</body>
+</html>

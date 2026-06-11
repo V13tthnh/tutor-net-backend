@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="vi">
+<head th:replace="~{email/layout :: head}"></head>
+<body>
+<div class="wrapper">
+    <div class="header">
+        <div class="header-logo">Tutor<span>Net</span></div>
+        <div class="header-badge">Yêu cầu tìm gia sư</div>
+    </div>
+
+    <div class="body">
+        <h2>Yêu cầu chưa được chấp thuận</h2>
+        <p>Xin chào <strong th:text="${contactName}">Học viên</strong>,</p>
+        <p>
+            Rất tiếc, yêu cầu tìm gia sư môn
+            <strong style="color:#4F46E5;" th:text="${subjectName}">Môn học</strong>
+            của bạn hiện
+            <span class="badge-danger"> Chưa được duyệt</span>.
+        </p>
+
+        <p><strong>Lý do từ chối:</strong></p>
+        <div class="rejection-box" th:text="${rejectionReason}">Lý do sẽ hiển thị ở đây.</div>
+
+        <div class="info-box">
+            <div class="row">
+                <span class="label"> Gợi ý</span>
+                <span>Điều chỉnh thông tin theo góp ý và gửi lại yêu cầu mới</span>
+            </div>
+        </div>
+
+        <p>Bạn có thể đăng yêu cầu mới bất cứ lúc nào sau khi cập nhật thông tin.</p>
+
+        <div class="btn-wrap">
+            <a href="http://localhost:3000/find-tutor" class="btn"> Đăng lại yêu cầu</a>
+        </div>
+    </div>
+
+    <div class="footer">
+        © 2026 TutorNet &nbsp;·&nbsp;
+        <a href="http://localhost:3000">Trang chủ</a> &nbsp;·&nbsp;
+        <a href="http://localhost:3000/support">Hỗ trợ</a><br/>
+        Bạn nhận email này vì có hoạt động liên quan đến tài khoản TutorNet của bạn.
+    </div>
+</div>
+</body>
+</html>

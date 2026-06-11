@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="vi">
+<head th:replace="~{email/layout :: head}"></head>
+<body>
+<div class="wrapper">
+    <div class="header">
+        <div class="header-logo">Tutor<span>Net</span></div>
+        <div class="header-badge">Hồ sơ gia sư</div>
+    </div>
+
+    <div class="body">
+        <h2>🎉 Chúc mừng, hồ sơ đã được duyệt!</h2>
+        <p>Xin chào <strong th:text="${fullName}">Gia sư</strong>,</p>
+        <p>
+            Hồ sơ gia sư của bạn đã được
+            <span class="badge-success">Chấp thuận</span>
+            bởi đội ngũ TutorNet.
+        </p>
+        <p>Bạn có thể bắt đầu nhận học viên và quản lý lịch dạy ngay từ bây giờ.</p>
+
+        <div class="info-box">
+            <div class="row">
+                <span class="label">Bước tiếp theo</span>
+                <span>Hoàn thiện lịch rảnh và mức học phí để học viên dễ tìm thấy bạn hơn</span>
+            </div>
+        </div>
+
+        <div class="btn-wrap">
+            <a href="http://localhost:3000/tutor/dashboard" class="btn">Vào trang quản lý</a>
+        </div>
+    </div>
+
+    <div class="footer">
+        © 2026 TutorNet &nbsp;·&nbsp;
+        <a href="http://localhost:3000">Trang chủ</a> &nbsp;·&nbsp;
+        <a href="http://localhost:3000/support">Hỗ trợ</a><br/>
+        Bạn nhận email này vì có hoạt động liên quan đến tài khoản TutorNet của bạn.
+    </div>
+</div>
+</body>
+</html>

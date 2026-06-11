@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Hợp Đồng Dịch Vụ và Giao Nhận Lớp Học - Ba Bên</title>
+    <style>
+        /* Reset & căn chỉnh toàn trang – phong cách hợp đồng trang trọng, không màu mè, không icon */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: #e5e7eb;   /* nền xám nhẹ chỉ để thấy khung giấy */
+            font-family: 'Times New Roman', Times, serif;
+            padding: 40px 24px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* Khung hợp đồng – mô phỏng trang A4, căn lề chuẩn, nội dung nằm giữa */
+        .contract {
+            max-width: 1100px;
+            width: 100%;
+            background: white;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+            margin: 0 auto;
+            padding: 2rem 2.2rem;
+        }
+
+        /* Thiết lập khi in – bỏ nền, căn lề chuẩn giấy */
+        @media print {
+            body {
+                background: white;
+                padding: 0;
+                margin: 0;
+            }
+            .contract {
+                max-width: 100%;
+                box-shadow: none;
+                padding: 1.8cm 2cm;
+                margin: 0;
+            }
+            .signature-table td {
+                padding-bottom: 55px;
+            }
+            .evidence-block {
+                break-inside: avoid;
+                page-break-inside: avoid;
+            }
+            .class-info-table {
+                break-inside: avoid;
+            }
+            h3 {
+                page-break-after: avoid;
+            }
+        }
+
+        /* Typography chuẩn mực, không màu sắc rườm rà */
+        .contract {
+            font-size: 11pt;
+            line-height: 1.45;
+            color: #111111;
+        }
+
+        h1 {
+            font-size: 16pt;
+            text-align: center;
+            text-transform: uppercase;
+            font-weight: bold;
+            margin: 0.2em 0 0.1em 0;
+            letter-spacing: 0.3px;
+        }
+
+        h2 {
+            font-size: 13.5pt;
+            text-align: center;
+            text-transform: uppercase;
+            font-weight: bold;
+            margin: 0 0 1.2rem 0;
+            border-bottom: 1px solid #a0aec0;
+            display: inline-block;
+            width: auto;
+            padding-bottom: 4px;
+        }
+
+        .subhead {
+            text-align: center;
+            margin-bottom: 1.2rem;
+        }
+
+        h3 {
+            font-size: 12pt;
+            text-transform: uppercase;
+            font-weight: bold;
+            margin: 1.2rem 0 0.6rem 0;
+            padding-left: 0;
+            border-left: none;       /* Bỏ thanh dọc ở tiêu đề phần */
+            clear: both;
+        }
+
+        p {
+            margin-bottom: 0.65rem;
+            text-align: justify;
+        }
+
+        .text-center {
+            text-align: center;
+        }
+        .text-right {
+            text-align: right;
+        }
+        .bold {
+            font-weight: 700;
+        }
+        .italic {
+            font-style: italic;
+        }
+        .underline {
+            text-decoration: underline;
+        }
+
+        /* Bảng header quốc hiệu + hệ thống */
+        .header-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 1.5rem;
+        }
+        .header-table td {
+            vertical-align: top;
+            padding: 0 5px 8px 5px;
+        }
+        .left-header {
+            text-align: center;
+        }
+        .right-header {
+            text-align: center;
+        }
+        .tutornet-name {
+            font-weight: bold;
+            font-size: 11.5pt;
+        }
+        .sologan {
+            font-size: 10pt;
+        }
+
+        /* Khối thông tin các bên - đã bỏ hoàn toàn thanh dọc, chỉ giữ padding tự nhiên */
+        .info-block {
+            margin-bottom: 1.1rem;
+            padding: 6px 0 6px 0;      /* không còn border-left, không màu nền đậm */
+            background: transparent;
+        }
+        .info-row {
+            margin-bottom: 4px;
+        }
+        .info-label {
+            display: inline-block;
+            min-width: 180px;
+            font-weight: 600;
+        }
+
+        /* Bảng thông tin lớp học */
+        .class-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1rem 0 1.2rem;
+            border: 1px solid #2c3e50;
+        }
+        .class-table th, .class-table td {
+            border: 1px solid #2c3e50;
+            padding: 8px 10px;
+            vertical-align: top;
+        }
+        .class-table th {
+            background: #f8f9fa;
+            font-weight: 700;
+            text-align: center;
+            width: 25%;
+        }
+        .class-table td {
+            background: white;
+        }
+
+        /* Khung chứng cứ điện tử */
+        .evidence-block {
+            margin-top: 28px;
+            border: 1px dashed #2c5282;
+            padding: 16px 18px;
+            background-color: #fafafa;
+            page-break-inside: avoid;
+        }
+        .evidence-title {
+            font-weight: bold;
+            text-transform: uppercase;
+            font-size: 10.5pt;
+            letter-spacing: 0.3px;
+            margin-bottom: 12px;
+            border-bottom: 1px solid #cbd5e0;
+            display: inline-block;
+            padding-right: 12px;
+        }
+
+        /* Bảng chữ ký ba bên, chuẩn chỉnh như văn bản giấy */
+        .signature-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 40px 0 20px 0;
+            page-break-inside: avoid;
+        }
+        .signature-table td {
+            width: 33.33%;
+            text-align: center;
+            vertical-align: top;
+            padding-bottom: 55px;
+            padding-top: 20px;
+        }
+        .signature-title {
+            font-weight: bold;
+            margin-bottom: 45px;
+            font-size: 11.5pt;
+        }
+        .sign-note {
+            font-size: 9pt;
+            font-style: italic;
+            color: #4b5563;
+        }
+
+        /* danh sách thụt đầu dòng */
+        .indent-list {
+            padding-left: 28px;
+            margin: 6px 0 8px 0;
+        }
+        .indent-list p {
+            margin-bottom: 4px;
+        }
+        hr {
+            margin: 16px 0;
+            border: 0;
+            border-top: 1px solid #d1d5db;
+        }
+        .page-break-insight {
+            page-break-inside: avoid;
+        }
+        .footer-note {
+            margin-top: 14px;
+            text-align: center;
+            font-size: 9pt;
+            border-top: 1px solid #e2e8f0;
+            padding-top: 12px;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+<div class="contract">
+    <table class="header-table">
+        <tr>
+            <td class="left-header" style="width: 48%;">
+                <div class="tutornet-name">HỆ THỐNG KẾT NỐI GIA SƯ<br>CÔNG NGHỆ TUTORNET</div>
+                <div class="sologan italic">Website: www.tutornet.vn</div>
+            </td>
+            <td class="right-header" style="width: 52%;">
+                <div><strong>CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM</strong></div>
+                <div><strong>Độc lập - Tự do - Hạnh phúc</strong></div>
+                <div class="italic sologan" style="margin-top: 5px;" th:text="${contractDate}">Ngày ..... tháng ..... năm 2026</div>
+            </td>
+        </tr>
+    </table>
+
+    <h1>HỢP ĐỒNG DỊCH VỤ VÀ GIAO NHẬN LỚP HỌC</h1>
+    <div class="subhead">
+        <h2>(MÔ HÌNH HỢP ĐỒNG BA BÊN ĐIỆN TỬ)</h2>
+    </div>
+
+    <p>Căn cứ Bộ luật Dân sự nước Cộng hòa xã hội chủ nghĩa Việt Nam số 91/2015/QH13 ngày 24/11/2015;</p>
+    <p>Căn cứ Luật Giao dịch điện tử số 20/2023/QH15 ngày 22/06/2023;</p>
+    <p>Căn cứ Điều khoản và Điều kiện sử dụng dịch vụ của Nền tảng kết nối gia sư TutorNet có hiệu lực từ ngày 01/12/2024;</p>
+    <p>Dựa trên sự thỏa thuận tự nguyện, bình đẳng và thiện chí của các Bên dưới đây:</p>
+
+    <h3>PHẦN I: THÔNG TIN CÁC BÊN THAM GIA</h3>
+
+    <div class="info-block">
+        <p class="bold">1. BÊN CUNG CẤP DỊCH VỤ / NỀN TẢNG (BÊN A): HỆ THỐNG GIA SƯ CÔNG NGHỆ TUTORNET</p>
+        <div class="info-row"><span class="info-label">• Đại diện bởi:</span> Ban Quản Trị Hệ Thống TutorNet</div>
+        <div class="info-row"><span class="info-label">• Hotline hỗ trợ:</span> 0999.XXX.XXX</div>
+        <div class="info-row"><span class="info-label">• Vai trò:</span> Đơn vị trung gian công nghệ cung cấp thông tin, điều phối, bảo hộ giao dịch và hỗ trợ giải quyết tranh chấp.</div>
+    </div>
+
+    <div class="info-block">
+        <p class="bold">2. KHÁCH HÀNG / GIA SƯ (BÊN B):</p>
+        <div class="info-row"><span class="info-label">• Họ và tên gia sư:</span> <span class="bold" th:text="${tutorName}">NGUYỄN VĂN ALFRED</span></div>
+        <div class="info-row"><span class="info-label">• Năm sinh:</span> <span th:text="${tutorBirthYear}">2002</span></div>
+        <div class="info-row"><span class="info-label">• Số điện thoại liên hệ:</span> <span th:text="${tutorPhone}">0987.654.321</span></div>
+        <div class="info-row"><span class="info-label">• Email hệ thống:</span> <span th:text="${tutorEmail}">alfred.tutor@tutornet.vn</span></div>
+    </div>
+
+    <div class="info-block">
+        <p class="bold">3. PHỤ HUYNH / HỌC SINH (BÊN C):</p>
+        <div class="info-row"><span class="info-label">• Họ và tên người đại diện:</span> <span class="bold" th:text="${studentName}">PHẠM THỊ HỒNG NHUNG (PHỤ HUYNH)</span></div>
+        <div class="info-row"><span class="info-label">• Số điện thoại liên hệ:</span> <span th:text="${studentPhone}">0912.345.678</span></div>
+        <div class="info-row"><span class="info-label">• Email nhận thông báo:</span> <span th:text="${studentEmail}">hongnhung.parent@gmail.com</span></div>
+        <div class="info-row"><span class="info-label">• Địa chỉ giảng dạy:</span> <span th:text="${studentAddress}">Số 456 Đường Nguyễn Huệ, Phường Bến Nghé, Quận 1, TP. Hồ Chí Minh</span></div>
+    </div>
+
+    <h3>PHẦN II: CÁC ĐIỀU KHOẢN VÀ ĐIỀU KIỆN CHUNG</h3>
+
+    <p class="bold">Điều 1: Thông tin lớp học và Thỏa thuận giảng dạy</p>
+    <p>Bên A tiến hành điều phối và bàn giao thông tin lớp học theo yêu cầu của Bên C cho Bên B thực hiện công tác giảng dạy với các chi tiết cụ thể như sau:</p>
+
+    <table class="class-table">
+        <tr><th>Mã lớp học</th><td class="bold" th:text="${classCode}">TN-2026-MATH10</td><th>Môn học & Lớp</th><td th:text="${subjectAndLevel}">Toán học - Lớp 10 (Chương trình bồi dưỡng hình học)</td></tr>
+        <tr><th>Học phí thỏa thuận</th><td class="bold" th:text="${tuitionRate} + ' VND / giờ'">250.000 VND / giờ</td><th>Dạy thử miễn phí</th><td>01 buổi đầu tiên (Thời lượng: 60 - 90 phút)</td></tr>
+        <tr><th>Thời gian học</th><td colspan="3" th:text="${scheduleDetail}">3 buổi / tuần (Thứ 2, Thứ 4, Thứ 6 từ 18:00 đến 20:00)</td></tr>
+        <tr><th>Địa điểm giảng dạy</th><td colspan="3" th:text="${studentAddress}">Số 456 Đường Nguyễn Huệ, Phường Bến Nghé, Quận 1, TP. Hồ Chí Minh</td></tr>
+    </table>
+
+    <p class="bold">Điều 2: Thù lao và Phương thức thanh toán (Giữa Bên B và Bên C)</p>
+    <p>2.1 Mức thù lao giảng dạy (Học phí) được áp dụng cố định theo thỏa thuận tại Điều 1 của Hợp đồng này. Bên B không được tự ý yêu cầu tăng học phí hoặc thay đổi cấu trúc giờ học khi chưa có sự đồng ý bằng văn bản của Bên C và sự chứng kiến của Bên A.</p>
+    <p>2.2 Phương thức thanh toán: Học phí sẽ được Bên C thanh toán trực tiếp cho Bên B bằng tiền mặt hoặc chuyển khoản qua tài khoản ngân hàng cá nhân vào cuối mỗi tháng học hoặc theo chu kỳ thỏa thuận riêng giữa Bên B và Bên C.</p>
+    <p>2.3 Bên A hoàn toàn không tham gia trực tiếp vào quy trình thu/giữ học phí và không chịu trách nhiệm tài chính đối với việc chậm trễ thanh toán học phí từ Bên C cho Bên B.</p>
+
+    <p class="bold">Điều 3: Phí giao lớp, Hạn thanh toán và Chính sách hoàn phí (Giữa Bên A và Bên B)</p>
+    <p>3.1 Phí giao lớp (Phí giới thiệu): Bên B có trách nhiệm thanh toán cho Bên A khoản phí môi giới một lần duy nhất trị giá: <span class="bold" th:text="${introductionFee} + ' VND'">600.000 VND</span>.</p>
+    <p>3.2 Hạn thanh toán: Chậm nhất là <span class="bold">35 ngày</span> kể từ Ngày Giao Lớp hệ thống ghi nhận.</p>
+    <p>3.3 Cơ chế phân bậc phí dựa trên vòng đời thực tế của Lớp học (Bảo hộ rủi ro lớp hỏng):</p>
+    <div class="indent-list">
+        <p>• <span class="bold">Mức 0% (Không thu phí):</span> Nếu Lớp Học Dừng Lại trong khoảng thời gian từ ngày 1 đến ngày 15 kể từ ngày giao lớp do nguyên nhân khách quan (Học sinh đổi lịch, dừng học đột xuất...). Bên B hoàn toàn được miễn trừ trách nhiệm đóng phí môi giới sau khi Bên A xác minh thông tin thành công.</p>
+        <p>• <span class="bold">Mức 50%:</span> Nếu Lớp Học Dừng Lại trong khoảng thời gian từ ngày 16 đến ngày 30 kể từ ngày giao lớp.</p>
+        <p>• <span class="bold">Mức 100%:</span> Nếu Lớp Học diễn ra thành công và ổn định vượt quá 30 ngày kể từ ngày giao lớp.</p>
+    </div>
+
+    <p class="bold">Điều 4: Quyền và Nghĩa vụ của Bên A (Nền tảng)</p>
+    <p>4.1 Đảm bảo cung cấp đầy đủ, chính xác thông tin lớp học, yêu cầu của học viên cho Bên B.</p>
+    <p>4.2 Hệ thống tự động áp dụng cơ chế <span class="italic">Masking (Che giấu thông tin liên hệ bảo mật)</span> đối với Số điện thoại và Email của Bên C trên giao diện của Bên B cho đến khi Bên B thực hiện lệnh xác nhận ký Hợp đồng này nhằm bảo vệ dòng doanh thu và tránh tình trạng cắt cầu trái phép.</p>
+    <p>4.3 Tiếp nhận thông tin báo hỏng lớp, tiến hành hậu kiểm độc lập và xử lý chốt mức phí môi giới công bằng theo quy định tại Điều 3.</p>
+    <p>4.4 Miễn trừ trách nhiệm: Bên A không chịu trách nhiệm về chất lượng giảng dạy thực tế của Bên B, tác phong hành vi dân sự bên ngoài ứng dụng của các bên, cũng như không can thiệp vào các tranh chấp phát sinh nằm ngoài phạm vi điều khoản giao dịch này.</p>
+
+    <p class="bold">Điều 5: Quyền và Nghĩa vụ của Bên B (Gia sư)</p>
+    <p>5.1 Ngay sau khi ký hợp đồng trực tuyến và nhận được thông tin liên hệ của Bên C, Bên B phải chủ động gọi điện trao đổi, hẹn lịch buổi dạy thử miễn phí trước với Bên C trong vòng 24 giờ.</p>
+    <p>5.2 Tuân thủ tuyệt đối quy định dạy thử 01 buổi đầu tiên miễn phí, chuẩn bị giáo án nghiêm túc, đúng trình độ và lớp học yêu cầu.</p>
+    <p>5.3 <span class="bold">Quy định nghiêm ngặt về bảo mật thông tin:</span> Tuyệt đối không cung cấp, chuyển nhượng thông tin lớp học này cho bất kỳ bên thứ ba nào dưới mọi hình thức. Tuyệt đối không trao đổi, thảo luận hoặc truyền đạt bất kỳ nội dung nào liên quan đến "Phí giao lớp" hoặc chiết khấu hệ thống với Bên C (Phụ huynh). Vi phạm điều này sẽ bị khóa tài khoản vĩnh viễn.</p>
+    <p>5.4 Đảm bảo tác phong sư phạm, dạy đúng giờ. Trường hợp có việc bận bất khả kháng phải nghỉ dạy, phải thông báo cho Bên C trước ít nhất 3 giờ và sắp xếp lịch dạy bù phù hợp.</p>
+
+    <p class="bold">Điều 6: Quyền và Nghĩa vụ của Bên C (Phụ huynh / Học sinh)</p>
+    <p>6.1 Đôn đốc, nhắc nhở con em tham gia học tập đúng giờ, chuẩn bị không gian học tập đủ ánh sáng, yên tĩnh và các công cụ bổ trợ học tập cơ bản.</p>
+    <p>6.2 Thanh toán học phí cho Bên B đầy đủ, đúng thời hạn như đã cam kết tại Điều 2.</p>
+    <p>6.3 Được quyền yêu cầu Bên A hỗ trợ đổi gia sư khác hoàn toàn miễn phí hoặc yêu cầu dừng lớp học nếu xét thấy sau thời gian dạy thử hoặc tháng học đầu tiên, Bên B giảng dạy không đạt hiệu quả như kỳ vọng.</p>
+
+    <p class="bold">Điều 7: Chế tài vi phạm và Biện pháp xử lý bùng phí</p>
+    <p>7.1 Trường hợp Bên B tiếp tục duy trì việc giảng dạy thực tế tại nhà Bên C nhưng cố tình trốn tránh, quá hạn 35 ngày không hoàn thành nghĩa vụ nộp phí giao lớp cho Bên A, hệ thống sẽ tự động kích hoạt các chế tài nghiêm khắc:</p>
+    <div class="indent-list">
+        <p>• Đình chỉ lập tức quyền truy cập tài khoản, chuyển trạng thái hồ sơ thành <span class="bold">VIOLATED/SUSPENDED</span> và đưa vào Danh sách đen (Blacklist) toàn hệ thống.</p>
+        <p>• Bên A có quyền gửi văn bản thông báo miễn trừ trách nhiệm đến Bên C, nêu rõ hành vi vi phạm hợp đồng của gia sư để gia đình nắm bắt thông tin và cân nhắc mức độ tin cậy khi tiếp tục cộng tác đơn phương.</p>
+        <p>• Tùy theo mức độ thiệt hại, Bên A bảo lưu quyền khởi kiện Bên B ra cơ quan Công an có thẩm quyền về tội <span class="bold">"Lạm dụng tín nhiệm chiếm đoạt tài sản" theo quy định tại Điều 140 Bộ luật Hình sự Việt Nam</span>.</p>
+    </div>
+
+    <p class="bold">Điều 8: Giải quyết tranh chấp và Hiệu lực hợp đồng</p>
+    <p>8.1 Hợp đồng này được lập dưới dạng hợp đồng điện tử dựa trên hành vi xác thực số. Các Bên cam kết thực hiện đầy đủ các điều khoản. Mọi bất đồng phát sinh sẽ được ưu tiên giải quyết thông qua thương lượng thiện chí trong vòng 30 ngày.</p>
+    <p>8.2 Trường hợp thương lượng không đạt kết quả, tranh chấp sẽ được đưa ra Tòa án nhân dân có thẩm quyền tại Việt Nam để phân xử theo pháp luật hiện hành.</p>
+    <p>8.3 Hợp đồng có hiệu lực pháp lý kể từ thời điểm hệ thống ghi nhận hành vi bấm nút "Xác nhận đồng ý ký hợp đồng trực tuyến" thành công từ Bên B.</p>
+
+    <div class="evidence-block">
+        <div class="evidence-title">THÔNG TIN XÁC THỰC CHỨNG CỨ KÝ ĐIỆN TỬ (CLICKWRAP EVIDENCE BOX)</div>
+        <p>• <span class="bold">Trạng thái giao dịch:</span> <span class="bold">HỢP ĐỒNG ĐÃ ĐÓNG DẤU ĐIỆN TỬ (CLICKWRAP AGREEMENT SIGNED)</span></p>
+        <p>• <span class="bold">Địa chỉ IP thực thi:</span> <span th:text="${ipAddress}">14.226.12.95 (IPv4 Static Client)</span></p>
+        <p>• <span class="bold">Mã băm dữ liệu (Hash ID):</span> <span th:text="${contractHash}">8f3c7d2e9b1a5c4d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d</span></p>
+        <p>• <span class="bold">Thời gian ghi nhận hệ thống (Timestamp):</span> <span th:text="${signedAt}">15:24:45 ngày 11 tháng 06 năm 2026</span></p>
+        <p class="italic" style="font-size: 9.5pt; margin-top: 8px;">* Ghi chú: Văn bản này được lưu trữ dưới dạng điện tử bảo mật trên máy chủ TutorNet. Bản sao hợp pháp đã được tự động biên dịch sang định dạng PDF bất biến và gửi đồng thời đến hòm thư Email đăng ký của Phụ huynh và Gia sư để làm căn cứ pháp lý đối soát chéo.</p>
+    </div>
+
+    <table class="signature-table">
+        <tr>
+            <td>
+                <div class="signature-title">ĐẠI DIỆN BÊN A</div>
+                <div class="sign-note">(Đã ký điện tử)</div>
+                <div style="margin-top: 40px;"><strong>TutorNet Ban Quản Trị</strong></div>
+            </td>
+            <td>
+                <div class="signature-title">ĐẠI DIỆN BÊN B</div>
+                <div class="sign-note">(Xác thực qua tài khoản)</div>
+                <div style="margin-top: 40px;"><strong th:text="${tutorName}">NGUYỄN VĂN ALFRED</strong></div>
+            </td>
+            <td>
+                <div class="signature-title">ĐẠI DIỆN BÊN C</div>
+                <div class="sign-note">(Xác thực qua yêu cầu)</div>
+                <div style="margin-top: 40px;"><strong th:text="${studentName}">PHẠM THỊ HỒNG NHUNG (PHỤ HUYNH)</strong></div>
+            </td>
+        </tr>
+    </table>
+    <div class="footer-note">
+        Hợp đồng điện tử ba bên có hiệu lực kể từ thời điểm ký. Mọi thay đổi phải được sự đồng thuận và lưu trữ trên hệ thống.
+    </div>
+</div>
+</body>
+</html>

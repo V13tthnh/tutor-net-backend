@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="vi">
+<head th:replace="~{email/layout :: head}"></head>
+<body>
+<div class="wrapper">
+    <div class="header">
+        <div class="header-logo">Tutor<span>Net</span></div>
+        <div class="header-badge">Lời mời dạy học</div>
+    </div>
+
+    <div class="body">
+        <h2>Bạn có một lời mời dạy học mới!</h2>
+        <p>Xin chào gia sư <strong th:text="${tutorName}">Gia sư</strong>,</p>
+        <p>
+            Học viên <strong th:text="${studentName}">Học viên</strong>
+            vừa gửi lời mời dạy học đến bạn trên TutorNet.
+        </p>
+
+        <p><strong>Lời nhắn từ học viên:</strong></p>
+        <div th:if="${studentMessage != null and !#strings.isEmpty(studentMessage)}"
+             class="quote"
+             th:text="${studentMessage}">
+        </div>
+        <p th:unless="${studentMessage != null and !#strings.isEmpty(studentMessage)}"
+           class="quote-empty">
+            Học viên không để lại lời nhắn.
+        </p>
+
+        <p>Vui lòng đăng nhập để xem thông tin chi tiết và xác nhận hoặc từ chối lời mời.</p>
+
+        <div class="btn-wrap">
+            <a href="http://localhost:3000/tutor/invitations" class="btn">Xem lời mời</a>
+        </div>
+    </div>
+
+    <div class="footer">
+        © 2026 TutorNet &nbsp;·&nbsp;
+        <a href="http://localhost:3000">Trang chủ</a> &nbsp;·&nbsp;
+        <a href="http://localhost:3000/support">Hỗ trợ</a><br/>
+        Bạn nhận email này vì có hoạt động liên quan đến tài khoản TutorNet của bạn.
+    </div>
+</div>
+</body>
+</html>

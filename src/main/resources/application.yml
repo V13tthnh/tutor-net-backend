@@ -1,0 +1,78 @@
+spring:
+  application:
+    name: tutor-net
+
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: vietthanh051103@gmail.com # Email hệ thống của bạn
+    password: lwcc llsv xttw emra    # Mật khẩu ứng dụng 16 số của Google
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+            required: true
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/tutor_net
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:onepiece2016}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+      connection-timeout: 30000
+      idle-timeout: 600000
+      pool-name: TutorNetHikariPool
+
+  jpa:
+    hibernate:
+      ddl-auto: update          # Flyway quản lý schema, JPA chỉ validate
+    show-sql: false
+    open-in-view: false           # Tắt OSIV để tránh N+1 query bất ngờ
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+        jdbc:
+          time_zone: Asia/Ho_Chi_Minh
+
+  flyway:
+    enabled: false
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+
+jwt:
+  secret: ${JWT_SECRET:my-very-secret-key-that-is-at-least-256-bits-long-for-hs256}
+  access-expiration: 900000
+  refresh-expiration: 604800000
+
+app:
+  upload:
+    dir: ./uploads
+    base-url: ${APP_BASE_URL:http://localhost:8080}/uploads
+    max-size: 2097152
+    allowed-types:
+      - image/jpeg
+      - image/png
+      - image/webp
+      - image/gif
+
+logging:
+  level:
+    # Log SQL query và params
+    org.hibernate.SQL: DEBUG
+    org.hibernate.orm.jdbc.bind: TRACE
+
+    # Log Spring Security (auth, permission)
+    org.springframework.security: DEBUG
+
+    # Log Web request/response
+    org.springframework.web: DEBUG
+    org.springframework.web.servlet.DispatcherServlet: DEBUG
+
+    # Log riêng package của project
+    com.tutornet: DEBUG
+
