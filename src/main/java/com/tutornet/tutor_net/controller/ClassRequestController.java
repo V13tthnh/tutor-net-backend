@@ -3,16 +3,19 @@ package com.tutornet.tutor_net.controller;
 import com.tutornet.tutor_net.dto.request.ClassRequest;
 import com.tutornet.tutor_net.dto.request.ClassRequest.CreateClassRequest;
 import com.tutornet.tutor_net.dto.response.ApiResponse;
+import com.tutornet.tutor_net.dto.response.ClassRequestDropdownResponse;
 import com.tutornet.tutor_net.dto.response.ClassRequestResponse;
 import com.tutornet.tutor_net.dto.response.UserRoleResponse;
 import com.tutornet.tutor_net.security.CustomUserDetails;
 import com.tutornet.tutor_net.service.ClassRequestService;
 import com.tutornet.tutor_net.util.PageableUtils;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
@@ -50,6 +53,29 @@ public class ClassRequestController {
                 pageable
         );
         return ResponseEntity.ok(ApiResponse.ok(responsePage));
+    }
+
+    /**
+     * API Công khai cho Khách vãng lai tra cứu trạng thái lớp học
+     * POST /api/v1/class-requests/track
+     */
+    @PostMapping("/track")
+    public ResponseEntity<ApiResponse<ClassRequestResponse>> trackClassRequest(
+            @Valid @RequestBody ClassRequest.TrackClassRequest request,
+            HttpServletRequest httpRequest) {
+        // Lấy IP người dùng từ request
+        String clientIp = httpRequest.getRemoteAddr();
+        ClassRequestResponse response = classRequestService.trackClassRequest(request, clientIp);
+        return ResponseEntity.ok(ApiResponse.ok(response));
+    }
+
+    @GetMapping("/my-dropdown")
+    @PreAuthorize("hasAuthority('tutor:read')")
+    public ResponseEntity<ApiResponse<List<ClassRequestDropdownResponse>>> getMyDropdown(
+            @AuthenticationPrincipal CustomUserDetails currentUser) {
+
+        List<ClassRequestDropdownResponse> list = classRequestService.getMyActiveRequestsForDropdown(currentUser.getUser().getId());
+        return ResponseEntity.ok(ApiResponse.ok(list));
     }
 
     /**

@@ -70,21 +70,7 @@ public class TutorSearchSpecification {
     public static Specification<TutorProfile> hasAnyTeachingMode(List<TeachingMode> modes) {
         return (root, query, cb) -> {
             if (modes == null || modes.isEmpty()) return null;
-
-            // Dùng SUM: '? = ANY(CAST(teaching_modes AS text[]))' không đi qua JPA function
-            // → inject bằng cb.function với PostgreSQL built-in
-            Predicate[] predicates = modes.stream()
-                    .map(mode -> cb.isTrue(
-                            cb.function(
-                                    "array_contains_teaching_mode",  // đã đăng ký trong DB
-                                    Boolean.class,
-                                    root.get("teachingModes"),
-                                    cb.literal(mode.name())
-                            )
-                    ))
-                    .toArray(Predicate[]::new);
-
-            return cb.or(predicates);
+            return root.get("teachingMode").in(modes);
         };
     }
 }

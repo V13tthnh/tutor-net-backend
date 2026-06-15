@@ -1,5 +1,6 @@
 package com.tutornet.tutor_net.service;
 
+import com.tutornet.tutor_net.dto.response.ContractPreviewResponse;
 import com.tutornet.tutor_net.dto.response.TutorInvitationResponse;
 import com.tutornet.tutor_net.enums.InvitationStatus;
 import org.springframework.data.domain.Page;
@@ -20,7 +21,7 @@ public interface TutorInvitationService {
      * @param invitationId ID lời mời
      * @param tutorUserId  ID user của gia sư đang đăng nhập (để xác thực quyền sở hữu)
      */
-    void acceptInvitation(Long invitationId, Long tutorUserId);
+    void acceptAndSignContract(Long invitationId, Long tutorUserId, String ipAddress);
 
     /**
      * Gia sư từ chối lời mời.
@@ -30,4 +31,6 @@ public interface TutorInvitationService {
      * @param rejectionReason Lý do từ chối (tuỳ chọn)
      */
     void rejectInvitation(Long invitationId, Long tutorUserId, String rejectionReason);
+
+    ContractPreviewResponse getContractPreview(Long invitationId, Long tutorUserId);
 }

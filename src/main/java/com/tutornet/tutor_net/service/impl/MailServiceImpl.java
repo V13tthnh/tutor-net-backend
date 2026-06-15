@@ -5,6 +5,7 @@ import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.io.ByteArrayResource;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.scheduling.annotation.Async;
@@ -153,5 +154,48 @@ public class MailServiceImpl implements MailService {
                 "tutor-accepted-invitation",   // → resources/templates/email/tutor-accepted-invitation.html
                 ctx
         );
+    }
+
+    /**
+     * Gửi email đính kèm hợp đồng điện tử định dạng PDF từ mảng bytes dữ liệu.
+     *
+     * @param toEmail        Email người nhận (Gia sư hoặc Phụ huynh)
+     * @param recipientName  Tên người nhận
+     * @param contractNumber Mã số hợp đồng (dùng làm tên file đính kèm)
+     * @param pdfBytes       Mảng bytes dữ liệu của file PDF hợp đồng
+     */
+    @Override
+    public void sendContractAttachmentEmail(String toEmail, String recipientName, String contractNumber, byte[] pdfBytes) {
+        try {
+            MimeMessage mimeMessage = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, "UTF-8");
+
+            helper.setTo(toEmail);
+            helper.setSubject("[TutorNet] Xác nhận ký kết hợp đồng điện tử thành công - Mã số " + contractNumber);
+
+            // XỬ LÝ ĐỔ DỮ LIỆU QUA THYMELEAF TEMPLATE
+            Context context = new Context();
+            context.setVariable("recipientName", recipientName);
+            context.setVariable("contractNumber", contractNumber);
+
+            // Biên dịch file html nằm tại templates/emails/contract_email.html
+            String htmlBody = templateEngine.process("email/contract_email", context);
+
+            helper.setText(htmlBody, true);
+
+            // Đính kèm tệp tin PDF
+            helper.addAttachment(
+                    contractNumber + ".pdf",
+                    new ByteArrayResource(pdfBytes),
+                    "application/pdf"
+            );
+
+            mailSender.send(mimeMessage);
+            log.info("Email chứa tệp đính kèm hợp đồng {} đã được gửi thành công tới hòm thư: {}", contractNumber, toEmail);
+
+        } catch (MessagingException e) {
+            log.error("Lỗi cấu trúc gửi tệp đính kèm email hợp đồng {}: {}", contractNumber, e.getMessage());
+            throw new RuntimeException("Không thể gửi email đính kèm hợp đồng: " + e.getMessage(), e);
+        }
     }
 }

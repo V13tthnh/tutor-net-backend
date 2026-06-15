@@ -20,18 +20,10 @@ public class TutorInvitation {
     @JoinColumn(name = "tutor_id", nullable = false)
     private TutorProfile tutor;
 
-    // Null nếu khách vãng lai
-    @Column(name = "student_user_id")
-    private Long studentUserId;
-
-    @Column(name = "student_name", nullable = false, length = 100)
-    private String studentName;
-
-    @Column(name = "student_phone", nullable = false, length = 20)
-    private String studentPhone;
-
-    @Column(name = "student_email", nullable = false, length = 255)
-    private String studentEmail;
+    // 🌟 CHỈ GIỮ LẠI LIÊN KẾT NÀY (Đại diện cho toàn bộ thông tin Học viên)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "class_request_id", nullable = false)
+    private ClassRequest classRequest;
 
     @Column(columnDefinition = "TEXT")
     private String message;

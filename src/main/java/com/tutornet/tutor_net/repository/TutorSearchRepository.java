@@ -71,10 +71,10 @@ public interface TutorSearchRepository extends JpaRepository<TutorProfile, Long>
      * Không thể dùng JPQL cho Postgres array → dùng native query
      */
     @Query(value = """
-        SELECT DISTINCT UNNEST(teaching_modes)::TEXT
-        FROM tutor_profiles
-        WHERE status = 'APPROVED'
-        """, nativeQuery = true)
+    SELECT DISTINCT teaching_mode::TEXT
+    FROM tutor_profiles
+    WHERE status = 'APPROVED'
+    """, nativeQuery = true)
     List<String> findDistinctTeachingModes();
 
     /**

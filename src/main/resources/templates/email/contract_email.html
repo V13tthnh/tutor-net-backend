@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <title>Xác nhận ký kết hợp đồng điện tử</title>
+</head>
+<body>
+<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px;">
+    <div style="text-align: center; margin-bottom: 20px;">
+        <h2 style="color: #2b6cb0; margin: 0;">HỆ THỐNG KẾT NỐI GIA SƯ TUTORNET</h2>
+        <p style="font-style: italic; color: #718096; margin-top: 5px;">Kết nối tri thức - Kiến tạo tương lai</p>
+    </div>
+
+    <p>Xin chào <strong th:text="${recipientName}">Người nhận</strong>,</p>
+
+    <p>Hệ thống kết nối gia sư công nghệ <strong>TutorNet</strong> xin trân trọng thông báo:</p>
+    <p style="background-color: #f0fff4; border-left: 4px solid #38a169; padding: 12px; font-weight: bold; color: #276749;">
+        Văn bản Hợp đồng điện tử ba bên cho mã lớp học của bạn đã được ký số chứng thực thành công trên hệ thống.
+    </p>
+
+    <table style="width: 100%; border-collapse: collapse; margin: 15px 0;">
+        <tr>
+            <td style="padding: 6px 0; color: #4a5568; width: 150px;">• Mã số hợp đồng:</td>
+            <td style="padding: 6px 0; font-weight: bold; color: #1a202c;" th:text="${contractNumber}">HD-XXXXXX</td>
+        </tr>
+        <tr>
+            <td style="padding: 6px 0; color: #4a5568;">• Trạng thái văn bản:</td>
+            <td style="padding: 6px 0; font-weight: bold; color: #38a169;">ĐÃ HIỆU LỰC (ACTIVE)</td>
+        </tr>
+        <tr>
+            <td style="padding: 6px 0; color: #4a5568;">• Hình thức ký số:</td>
+            <td style="padding: 6px 0; color: #1a202c;">Xác thực tài khoản trực tuyến (Clickwrap Agreement)</td>
+        </tr>
+    </table>
+
+    <p>Tệp sao lưu pháp lý bất biến định dạng <strong>PDF</strong> đã được đính kèm trực tiếp trong email này để bạn có thể tải về, lưu trữ hoặc đối soát chéo bất cứ lúc nào.</p>
+
+    <p>Mọi thắc mắc hoặc yêu cầu hỗ trợ kỹ thuật trong quá trình nhận lớp, vui lòng liên hệ ngay với Ban quản trị qua số Hotline: <strong>0999.XXX.XXX</strong> để được phục vụ tốt nhất.</p>
+
+    <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 20px 0;" />
+
+    <div style="font-size: 12px; color: #a0aec0; text-align: center; line-height: 1.5;">
+        Đây là thư điện tử được gửi tự động từ hệ thống quản lý giao dịch TutorNet.<br/>
+        Vui lòng không phản hồi lại (Reply) email này.<br/>
+        © 2026 Hệ thống Gia sư Công nghệ TutorNet. All rights reserved.
+    </div>
+</div>
+</body>
+</html>

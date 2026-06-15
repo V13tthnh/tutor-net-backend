@@ -32,6 +32,7 @@ public class ClassRequestMapper {
         Long tutorId = (entity.getTargetTutor() != null) ? entity.getTargetTutor().getId() : null;
         String tutorName = (entity.getTargetTutor() != null) ? entity.getTargetTutor().getUser().getFullName() : null;
         AddressUtils.Parts currentAddr = AddressUtils.parse(entity.getAddressDetail());
+        boolean hasAccount = (entity.getUser() != null);
 
         return new ClassRequestResponse(
                 entity.getId(),
@@ -61,12 +62,13 @@ public class ClassRequestMapper {
                 entity.getRejectionReason(),
                 0, // Lớp mới đăng thì số lượng gia sư ứng tuyển mặc định bằng 0
                 entity.getCreatedAt(),
-                entity.getUpdatedAt()
+                entity.getUpdatedAt(),
+                hasAccount
         );
     }
 
     /**
-     * Dùng riêng cho việc render danh sách Job Board, nạp động số lượng người ứng tuyển
+     * Dùng riêng cho việc render danh sách lớp học, nạp động số lượng người ứng tuyển
      */
     public ClassRequestResponse toResponseWithCount(ClassRequest entity, int totalApplicants) {
         if (entity == null) return null;
@@ -75,7 +77,7 @@ public class ClassRequestMapper {
         Long tutorId = (entity.getTargetTutor() != null) ? entity.getTargetTutor().getId() : null;
         String tutorName = (entity.getTargetTutor() != null) ? entity.getTargetTutor().getUser().getFullName() : null;
         AddressUtils.Parts currentAddr = AddressUtils.parse(entity.getAddressDetail());
-
+        boolean hasAccount = (entity.getUser() != null);
 
         return new ClassRequestResponse(
                 entity.getId(),
@@ -103,7 +105,52 @@ public class ClassRequestMapper {
                 entity.getRejectionReason(),
                 totalApplicants, // Nạp số lượng đếm được từ DB
                 entity.getCreatedAt(),
-                entity.getUpdatedAt()
+                entity.getUpdatedAt(),
+                hasAccount
+        );
+    }
+
+
+    /**
+     * Dùng riêng cho việc render danh sách lớp học, sử dụng thủ thuật masking để che thông tin nhạy cảm
+     * như Số nhà/Tên đường, Số điện thoại và Email.
+     *
+     */
+    public ClassRequestResponse toTrackingResponse(ClassRequest entity, boolean hasAccount) {
+        if (entity == null) return null;
+
+        Long userId = (entity.getUser() != null) ? entity.getUser().getId() : null;
+        Long tutorId = (entity.getTargetTutor() != null) ? entity.getTargetTutor().getId() : null;
+        String tutorName = (entity.getTargetTutor() != null) ? entity.getTargetTutor().getUser().getFullName() : null;
+        AddressUtils.Parts currentAddr = AddressUtils.parse(entity.getAddressDetail());
+
+        return new ClassRequestResponse(
+                entity.getId(),
+                entity.getClassCode(),
+                userId,
+                entity.getContactName(),
+                entity.getContactPhone(),
+                entity.getContactEmail(),
+                entity.getSubject().getId(),
+                entity.getSubject().getName(),
+                entity.getGradeLevel(),
+                entity.getProposedPrice(),
+                entity.getHourlyRate(),
+                entity.getSessionsPerWeek(),
+                entity.getDurationMinutes(),
+                entity.getTeachingMode(),
+                currentAddr.province(),
+                currentAddr.ward(),
+                "*** (Đã ẩn bảo mật)",  // che địa chỉ chi tiết
+                entity.getStudentNotes(),
+                tutorId,
+                tutorName,
+                entity.getStatus(),
+                entity.getRejectionReason(),
+                0,
+                entity.getCreatedAt(),
+                entity.getUpdatedAt(),
+                hasAccount
         );
     }
 }

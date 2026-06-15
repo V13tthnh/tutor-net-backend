@@ -30,5 +30,7 @@ public record ClassRequestResponse(
         String rejectionReason,     // NULL nếu chưa bị từ chối — Admin điền khi REJECTED
         Integer totalApplicants, // Số lượng gia sư đã gửi yêu cầu nhận lớp này (Đáp ứng đúng logic đếm)
         LocalDateTime createdAt,
-        LocalDateTime updatedAt
+        LocalDateTime updatedAt,
+        boolean hasAccount
 ) {}
+
