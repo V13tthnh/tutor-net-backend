@@ -7,7 +7,6 @@ import com.tutornet.tutor_net.entity.TutorProfile;
 import com.tutornet.tutor_net.entity.User;
 import com.tutornet.tutor_net.enums.ClassRequestStatus;
 import com.tutornet.tutor_net.enums.InvitationStatus;
-import com.tutornet.tutor_net.enums.TeachingMode;
 import com.tutornet.tutor_net.event.TutorInvitedEvent;
 import com.tutornet.tutor_net.event.TutorRespondedToInviteEvent;
 import com.tutornet.tutor_net.exception.BusinessException;
@@ -38,12 +37,25 @@ public class TutorServiceImpl implements TutorService {
         TutorProfile tutor = tutorProfileRepository.findById(tutorId)
                 .orElseThrow(() -> new ResourceNotFoundException("Gia sư không tồn tại"));
 
+        // Lấy thông tin Lớp học từ Dropdown mà học viên chọn
+        ClassRequest classRequest = classRequestRepository.findById(request.classRequestId())
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy yêu cầu lớp học để liên kết"));
+
+        // logic chặn spam mời gia sư
+        boolean isAlreadyPending = invitationRepository.existsByClassRequest_IdAndTutor_IdAndStatus(
+                classRequest.getId(),
+                tutor.getId(),
+                InvitationStatus.PENDING
+        );
+
+        if (isAlreadyPending) {
+            throw new BusinessException("Bạn đã gửi lời mời cho gia sư này và đang chờ phản hồi. Vui lòng không gửi lại.");
+        }
+
+        // KHỞI TẠO LỜI MỜI MỚI CHỈ VỚI KHÓA NGOẠI
         TutorInvitation invitation = TutorInvitation.builder()
                 .tutor(tutor)
-                .studentUserId(studentUserId)       // null nếu khách vãng lai
-                .studentName(request.fullName())
-                .studentPhone(request.phone())
-                .studentEmail(request.email())
+                .classRequest(classRequest)
                 .message(request.message())
                 .status(InvitationStatus.PENDING)
                 .build();
@@ -55,7 +67,7 @@ public class TutorServiceImpl implements TutorService {
                 tutor.getUser(),
                 tutor.getUser().getEmail(),
                 tutor.getUser().getFullName(),
-                request.fullName(),
+                classRequest.getContactName(), // Lấy tên từ classRequest
                 request.message()
         ));
     }
@@ -64,55 +76,35 @@ public class TutorServiceImpl implements TutorService {
     @Transactional
     public void acceptTutorInvitation(Long invitationId, Long tutorUserId) {
 
-        // 1. Tìm lời mời
         TutorInvitation invitation = invitationRepository.findById(invitationId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy lời mời này"));
 
-        // 2. Validate quyền: Chỉ gia sư nhận được lời mời mới có quyền chấp nhận
         if (!invitation.getTutor().getUser().getId().equals(tutorUserId)) {
             throw new BusinessException("Bạn không có quyền thao tác trên thư mời này");
         }
 
-        // 3. Validate trạng thái: Chỉ xử lý khi còn đang PENDING
         if (invitation.getStatus() != InvitationStatus.PENDING) {
             throw new BusinessException("Lời mời này đã được xử lý hoặc đã hết hạn");
         }
 
-        // 4. Cập nhật trạng thái thư mời → ACCEPTED
         invitation.setStatus(InvitationStatus.ACCEPTED);
         invitationRepository.save(invitation);
 
-        // 5. Lấy User học viên (null nếu khách vãng lai)
-        User studentUser = invitation.getStudentUserId() != null
-                ? userRepository.findById(invitation.getStudentUserId()).orElse(null)
-                : null;
+        // 🌟 KHÔNG TẠO LỚP MỚI NỮA, CẬP NHẬT TRẠNG THÁI LỚP CŨ
+        ClassRequest classRequest = invitation.getClassRequest();
+        classRequest.setStatus(ClassRequestStatus.MATCHED);
+        classRequest.setTargetTutor(invitation.getTutor());
+        classRequestRepository.save(classRequest);
 
-        // 6. Tự động sinh ClassRequest chính thức (status = MATCHED)
-        //    Map đúng tên field theo entity ClassRequest thực tế
-        ClassRequest classRequest = ClassRequest.builder()
-                .targetTutor(invitation.getTutor())
-                .user(studentUser)
-                .contactName(invitation.getStudentName())           // ← đúng field
-                .contactPhone(invitation.getStudentPhone())         // ← đúng field
-                .contactEmail(invitation.getStudentEmail())         // ← đúng field
-                .studentNotes("Lớp được tạo từ lời mời trực tiếp. Lời nhắn: "
-                        + invitation.getMessage())                  // ← đúng field
-                .teachingMode(TeachingMode.ONLINE)                  // not-null, mặc định
-                .gradeLevel("N/A")                                  // not-null, cập nhật sau
-                .status(ClassRequestStatus.MATCHED)
-                .build();
+        User studentUser = classRequest.getUser();
 
-        ClassRequest savedRequest = classRequestRepository.save(classRequest);
-
-        // 7. Bắn Event → AppEventListener tạo Contract DRAFT + gửi thông báo
-        //    Đúng thứ tự tham số của TutorRespondedToInviteEvent record
         eventPublisher.publishEvent(new TutorRespondedToInviteEvent(
-                savedRequest.getId(),                           // classRequestId
-                invitation.getStudentName(),                    // studentName
-                invitation.getStudentEmail(),                   // studentEmail (null nếu vãng lai)
-                studentUser,                                    // studentUser  (null nếu vãng lai)
-                invitation.getTutor().getUser().getFullName(),  // tutorName
-                true                                            // isAccepted
+                classRequest.getId(),
+                classRequest.getContactName(),
+                classRequest.getContactEmail(),
+                studentUser,
+                invitation.getTutor().getUser().getFullName(),
+                true
         ));
     }
 }

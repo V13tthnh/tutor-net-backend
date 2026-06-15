@@ -1,6 +1,7 @@
 package com.tutornet.tutor_net.mapper;
 
 import com.tutornet.tutor_net.dto.response.TutorInvitationResponse;
+import com.tutornet.tutor_net.entity.ClassRequest;
 import com.tutornet.tutor_net.entity.TutorInvitation;
 import com.tutornet.tutor_net.enums.InvitationStatus;
 import org.springframework.stereotype.Component;
@@ -14,18 +15,31 @@ public class TutorInvitationMapper {
      * số điện thoại và email để bảo vệ thông tin học viên.
      */
     public TutorInvitationResponse toResponse(TutorInvitation invitation) {
+        if (invitation == null) return null;
+
         boolean revealed = InvitationStatus.ACCEPTED.equals(invitation.getStatus());
+        ClassRequest cr = invitation.getClassRequest();
+
+        // Chốt chặn an toàn: Phòng trường hợp dữ liệu cũ dưới DB bị lỗi liên kết khóa ngoại
+        if (cr == null) {
+            return TutorInvitationResponse.builder()
+                    .id(invitation.getId())
+                    .message(invitation.getMessage())
+                    .status(invitation.getStatus())
+                    .createdAt(invitation.getCreatedAt())
+                    .build();
+        }
+
+        Long studentUserId = (cr.getUser() != null) ? cr.getUser().getId() : null;
 
         return TutorInvitationResponse.builder()
                 .id(invitation.getId())
-                .studentUserId(invitation.getStudentUserId())
-                .studentName(invitation.getStudentName())
-                .studentPhone(revealed
-                        ? invitation.getStudentPhone()
-                        : maskPhone(invitation.getStudentPhone()))
-                .studentEmail(revealed
-                        ? invitation.getStudentEmail()
-                        : maskEmail(invitation.getStudentEmail()))
+                .studentUserId(studentUserId)
+                .studentName(cr.getContactName())
+                .studentPhone(revealed ? cr.getContactPhone() : maskPhone(cr.getContactPhone()))
+                .studentEmail(revealed ? cr.getContactEmail() : maskEmail(cr.getContactEmail()))
+                .subjectName(cr.getSubject() != null ? cr.getSubject().getName() : "Chưa cập nhật")
+                .proposedPrice(cr.getProposedPrice())
                 .message(invitation.getMessage())
                 .status(invitation.getStatus())
                 .createdAt(invitation.getCreatedAt())

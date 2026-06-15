@@ -8,6 +8,7 @@ import com.tutornet.tutor_net.service.MailService;
 import com.tutornet.tutor_net.service.NotificationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
@@ -267,6 +268,38 @@ public class AppEventListener {
         } catch (Exception e) {
             log.error("Lỗi khi tạo hợp đồng DRAFT cho classRequest #{}: {}",
                     event.classRequestId(), e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Lắng nghe sự kiện hợp đồng được ký kết thành công.
+     * Chạy bất đồng bộ (Async) giải phóng luồng chính và chạy sau khi DB đã commit thành công.
+     */
+    @Async
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    public void handleContractSignedEvent(ContractSignedEvent event) {
+        log.info("Bắt đầu tiến trình gửi email hợp đồng điện tử bất đồng bộ cho mã: {}", event.contractNumber());
+        try {
+            // 1. Gửi Email đính kèm tệp tin PDF cho Gia sư
+            mailService.sendContractAttachmentEmail(
+                    event.tutorEmail(),
+                    event.tutorName(),
+                    event.contractNumber(),
+                    event.pdfBytes()
+            );
+
+            // 2. Gửi Email đính kèm tệp tin PDF cho Phụ huynh / Học sinh (Nếu có email)
+            if (event.studentEmail() != null && !event.studentEmail().isBlank()) {
+                mailService.sendContractAttachmentEmail(
+                        event.studentEmail(),
+                        event.studentName(),
+                        event.contractNumber(),
+                        event.pdfBytes()
+                );
+            }
+            log.info("Đã gửi email hợp đồng thành công đến các bên liên quan.");
+        } catch (Exception e) {
+            log.error("Lỗi nghiêm trọng khi gửi email đính kèm hợp đồng tĩnh: {}", e.getMessage(), e);
         }
     }
 }

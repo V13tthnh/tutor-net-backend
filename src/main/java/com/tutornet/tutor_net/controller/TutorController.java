@@ -7,6 +7,7 @@ import com.tutornet.tutor_net.service.TutorService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
@@ -16,7 +17,6 @@ import org.springframework.web.bind.annotation.*;
 public class TutorController {
 
     private final TutorService tutorService;
-
 
     @PostMapping("/{tutorId}/invite")
     public ResponseEntity<ApiResponse<Void>> inviteTutor(
@@ -31,16 +31,12 @@ public class TutorController {
     }
 
     @PostMapping("/invitations/{invitationId}/accept")
-    // @PreAuthorize("hasRole('tutor')") // Nhớ mở comment bảo mật này nếu bạn dùng Spring Security
+    @PreAuthorize("hasRole('tutor')")
     public ResponseEntity<ApiResponse<Void>> acceptInvitation(
             @PathVariable Long invitationId,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
-
-        // Lấy ID của user đang đăng nhập (chính là Gia sư)
         Long tutorUserId = userDetails.getUser().getId();
-
         tutorService.acceptTutorInvitation(invitationId, tutorUserId);
-
         return ResponseEntity.ok(ApiResponse.ok(null));
     }
 }

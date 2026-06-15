@@ -43,8 +43,9 @@ public class Contract {
     @Column(name = "fee_payment_deadline")
     private LocalDate feePaymentDeadline; // Hạn chót đóng phí (Ngày giao lớp + 35 ngày)
 
+    @Builder.Default
     @Column(name = "is_fee_paid", nullable = false)
-    private Boolean isFeePaid = false; // Đã thanh toán phí môi giới chưa?
+    private Boolean isFeePaid = false;
 
     @Column(name = "paid_at")
     private LocalDateTime paidAt; // Thời điểm thanh toán thành công (Webhook trả về)
@@ -52,6 +53,7 @@ public class Contract {
     @Column(name = "effective_date", nullable = false)
     private LocalDate effectiveDate; // Ngày bắt đầu tính phí/dạy thử
 
+    @Builder.Default
     @Enumerated(EnumType.STRING)
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     @Column(name = "status", nullable = false, columnDefinition = "contract_status")

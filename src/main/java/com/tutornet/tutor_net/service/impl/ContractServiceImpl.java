@@ -5,6 +5,7 @@ import com.tutornet.tutor_net.dto.response.ContractResponse;
 import com.tutornet.tutor_net.entity.ClassRequest;
 import com.tutornet.tutor_net.entity.Contract;
 import com.tutornet.tutor_net.enums.ContractStatus;
+import com.tutornet.tutor_net.event.ContractSignedEvent;
 import com.tutornet.tutor_net.exception.BadRequestException;
 import com.tutornet.tutor_net.exception.BusinessException;
 import com.tutornet.tutor_net.exception.ResourceNotFoundException;
@@ -13,18 +14,16 @@ import com.tutornet.tutor_net.repository.ContractRepository;
 import com.tutornet.tutor_net.service.ContractService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
 
 import java.io.ByteArrayOutputStream;
-import java.io.File;
 import java.io.IOException;
 import java.math.BigDecimal;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.security.MessageDigest;
 import java.text.NumberFormat;
 import java.time.LocalDate;
@@ -42,6 +41,7 @@ public class ContractServiceImpl implements ContractService {
     private final ClassRequestRepository classRequestRepo;
     private final TemplateEngine templateEngine;
     private final FileStorageServiceImpl fileStorageService;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Override
     @Transactional
@@ -103,56 +103,7 @@ public class ContractServiceImpl implements ContractService {
         );
     }
 
-    @Override
-    @Transactional
-    public void processClickwrapSigning(Long contractId, String ipAddress) {
-        // 1. Tìm hợp đồng nháp vừa được sinh ra khi Gia sư nhận lớp
-        Contract contract = contractRepository.findById(contractId)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy dữ liệu hợp đồng"));
 
-        // 2. Cập nhật bằng chứng số xác nhận ký Clickwrap
-        contract.setStatus(ContractStatus.ACTIVE); // Duyệt thẳng, bỏ qua bước chờ admin check chữ ký tay
-        contract.setIpAddress(ipAddress);
-        contract.setSignedAt(LocalDateTime.now());
-        contractRepository.save(contract);
-
-        // 3. Chuẩn bị dữ liệu để truyền vào file HTML mẫu (Thymeleaf Context)
-        Context context = new Context();
-        context.setVariable("tutorName", contract.getClassRequest().getUser().getFullName());
-        context.setVariable("studentName", contract.getClassRequest().getUser().getFullName());
-        context.setVariable("hourlyRate", contract.getClassRequest().getHourlyRate());
-        context.setVariable("ipAddress", ipAddress);
-        context.setVariable("signedAt", LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss dd/MM/yyyy")));
-
-        // 4. Đổ dữ liệu vào 2 file HTML template nằm trong mục resources/templates
-        String platformHtml = templateEngine.process("contracts/platform_contract_template", context);
-        String classHtml = templateEngine.process("contracts/class_contract_template", context);
-
-        // 5. Biên dịch chuỗi HTML thành các mảng bytes PDF
-        byte[] platformPdfBytes = generatePdfBytes(platformHtml);
-        byte[] classPdfBytes = generatePdfBytes(classHtml);
-
-        // 6. [Tiến trình tiếp theo của bạn]: Lưu mảng bytes thành file gửi lên S3/Local
-        // và gọi mailService gửi đính kèm file này cho Gia sư & Học viên.
-    }
-
-    private byte[] generatePdfBytes(String htmlContent) {
-        try (ByteArrayOutputStream os = new ByteArrayOutputStream()) {
-            PdfRendererBuilder builder = new PdfRendererBuilder();
-            builder.useFastMode();
-
-            // 🌟 CHỐT CHẶN KHÔNG BỊ LỖI FONT TIẾNG VIỆT:
-            // Bạn cần chuẩn bị 1 file font Arial.ttf đặt trong thư mục resources/fonts/
-            builder.useFont(new File(getClass().getClassLoader().getResource("fonts/Arial.ttf").toURI()), "Arial");
-
-            builder.withHtmlContent(htmlContent, "/");
-            builder.toStream(os);
-            builder.run();
-            return os.toByteArray();
-        } catch (Exception e) {
-            throw new RuntimeException("Lỗi nghiêm trọng trong quá trình xuất file PDF hợp đồng: " + e.getMessage(), e);
-        }
-    }
 
     private static final DateTimeFormatter DATETIME_FORMAT =
             DateTimeFormatter.ofPattern("HH:mm:ss 'ngày' dd 'tháng' MM 'năm' yyyy");
@@ -161,34 +112,30 @@ public class ContractServiceImpl implements ContractService {
 
     @Override
     @Transactional
-    public void signContract(Long contractId, HttpServletRequest request) {
+    public void signContractAndGeneratePdf(Long contractId, String ipAddress) {
 
         // ── Load & validate ─────────────────────────────────────────
         Contract contract = contractRepository.findById(contractId)
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Không tìm thấy hợp đồng #" + contractId));
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy hợp đồng #" + contractId));
 
         if (contract.getStatus() != ContractStatus.DRAFT
                 && contract.getStatus() != ContractStatus.PENDING_SIGNATURE) {
-            throw new BadRequestException(
-                    "Hợp đồng #" + contractId + " đang ở trạng thái "
-                            + contract.getStatus() + ", không thể ký.");
+            throw new BadRequestException("Hợp đồng #" + contractId + " đang ở trạng thái " + contract.getStatus() + ", không thể ký.");
         }
 
-        // ── Bước 2: IP + timestamp ───────────────────────────────────
-        String        ipAddress = extractClientIp(request);
-        LocalDateTime signedAt  = LocalDateTime.now();
+        // ── Bước 1: Khởi tạo IP + timestamp ─────────────────────────
+        LocalDateTime signedAt = LocalDateTime.now();
 
-        // ── Bước 1: Thymeleaf Context (hash tạm để render lần 1) ────
+        // ── Bước 2: Thymeleaf Context (hash tạm để render lần 1) ────
         Context ctx = buildThymeleafContext(contract, ipAddress, signedAt, "ĐANG XỬ LÝ...");
 
         // ── Bước 3: Render lần 1 → tính SHA-256 ─────────────────────
-        byte[] pdfBytes  = renderPdf(templateEngine.process("contracts", ctx));
+        byte[] pdfBytes = renderPdf(templateEngine.process("email/contracts", ctx));
         String sha256Hash = sha256Hex(pdfBytes);
 
         // ── Render lần 2: ghi hash thật vào evidence-block ──────────
         ctx.setVariable("contractHash", sha256Hash);
-        pdfBytes = renderPdf(templateEngine.process("contracts", ctx));
+        pdfBytes = renderPdf(templateEngine.process("email/contracts", ctx));
 
         // ── Bước 4: Lưu file qua FileStorageService (dùng chung) ────
         String fileUrl;
@@ -200,7 +147,6 @@ public class ContractServiceImpl implements ContractService {
 
         // ── Bước 5: Cập nhật Contract → ACTIVE ──────────────────────
         LocalDate today = LocalDate.now();
-
         contract.setIpAddress(ipAddress);
         contract.setSignedAt(signedAt);
         contract.setContractFileUrl(fileUrl);
@@ -209,6 +155,15 @@ public class ContractServiceImpl implements ContractService {
         contract.setStatus(ContractStatus.ACTIVE);
 
         contractRepository.save(contract);
+
+        eventPublisher.publishEvent(new ContractSignedEvent(
+                contract.getContractNumber(),
+                contract.getTutor().getUser().getEmail(),
+                contract.getTutor().getUser().getFullName(),
+                contract.getClassRequest().getContactEmail(),
+                contract.getClassRequest().getContactName(),
+                pdfBytes // Truyền mảng bytes thu được từ lệnh renderPdf trước đó sang
+        ));
     }
 
     // ---------------------------------------------------------------
@@ -269,7 +224,14 @@ public class ContractServiceImpl implements ContractService {
     private byte[] renderPdf(String htmlContent) {
         try (ByteArrayOutputStream os = new ByteArrayOutputStream()) {
             PdfRendererBuilder builder = new PdfRendererBuilder();
-            builder.withHtmlContent(htmlContent, null);
+            builder.useFont(() -> {
+                try {
+                    return new ClassPathResource("fonts/times.ttf").getInputStream();
+                } catch (IOException e) {
+                    throw new RuntimeException("Không tìm thấy file font times-new-roman.ttf", e);
+                }
+            }, "Times New Roman");
+            builder.withHtmlContent(htmlContent, "/");
             builder.toStream(os);
             builder.run();
             return os.toByteArray();
@@ -297,7 +259,7 @@ public class ContractServiceImpl implements ContractService {
 
     private String formatCurrency(BigDecimal amount) {
         if (amount == null) return "0";
-        return NumberFormat.getNumberInstance(new Locale("vi", "VN")).format(amount);
+        return NumberFormat.getNumberInstance(Locale.forLanguageTag("vi-VN")).format(amount);
     }
 
     private String buildScheduleDetail(ClassRequest cr) {

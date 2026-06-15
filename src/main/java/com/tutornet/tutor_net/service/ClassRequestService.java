@@ -4,6 +4,7 @@ import com.tutornet.tutor_net.dto.request.ClassRequest;
 import com.tutornet.tutor_net.dto.request.ClassRequest.CreateClassRequest;
 import com.tutornet.tutor_net.dto.request.ClassRequest.ReviewClassRequest;
 import com.tutornet.tutor_net.dto.request.ClassRequest.BulkReviewClassRequest;
+import com.tutornet.tutor_net.dto.response.ClassRequestDropdownResponse;
 import com.tutornet.tutor_net.dto.response.ClassRequestFilterOptionsResponse;
 import com.tutornet.tutor_net.dto.response.ClassRequestResponse;
 import com.tutornet.tutor_net.dto.response.UserRoleResponse;
@@ -36,6 +37,8 @@ public interface ClassRequestService {
 
     List<ClassRequestResponse> reviewBulkClassRequests(BulkReviewClassRequest bulkRequest, Long adminId);
 
-    ClassRequestResponse trackClassRequest(ClassRequest.TrackClassRequest request);
+    ClassRequestResponse trackClassRequest(ClassRequest.TrackClassRequest request, String clientIp);
+
+    List<ClassRequestDropdownResponse> getMyActiveRequestsForDropdown(Long userId);
 
 }

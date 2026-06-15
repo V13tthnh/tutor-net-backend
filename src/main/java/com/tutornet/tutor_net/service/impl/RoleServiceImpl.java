@@ -34,8 +34,6 @@ public class RoleServiceImpl implements RoleService {
     private final PermissionRepository permissionRepository;
     private final UserRepository       userRepository;
 
-    // ─── Role CRUD ────────────────────────────────────────────────────────────
-
     @Override
     public PageResponse<RoleResponse> getRoles(String keyword, Boolean isSystem, Pageable pageable) {
         Specification<Role> spec = Specification

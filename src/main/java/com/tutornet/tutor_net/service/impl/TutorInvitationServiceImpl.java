@@ -1,22 +1,17 @@
 package com.tutornet.tutor_net.service.impl;
 
+import com.tutornet.tutor_net.dto.response.ContractPreviewResponse;
 import com.tutornet.tutor_net.dto.response.TutorInvitationResponse;
-import com.tutornet.tutor_net.entity.ClassRequest;
-import com.tutornet.tutor_net.entity.TutorInvitation;
-import com.tutornet.tutor_net.entity.TutorProfile;
-import com.tutornet.tutor_net.entity.User;
+import com.tutornet.tutor_net.entity.*;
 import com.tutornet.tutor_net.enums.ClassRequestStatus;
+import com.tutornet.tutor_net.enums.ContractStatus;
 import com.tutornet.tutor_net.enums.InvitationStatus;
-import com.tutornet.tutor_net.enums.TeachingMode;
-import com.tutornet.tutor_net.event.TutorAcceptedInvitationEvent;
 import com.tutornet.tutor_net.event.TutorRespondedToInviteEvent;
 import com.tutornet.tutor_net.exception.BadRequestException;
 import com.tutornet.tutor_net.exception.ResourceNotFoundException;
 import com.tutornet.tutor_net.mapper.TutorInvitationMapper;
-import com.tutornet.tutor_net.repository.ClassRequestRepository;
-import com.tutornet.tutor_net.repository.TutorInvitationRepository;
-import com.tutornet.tutor_net.repository.TutorProfileRepository;
-import com.tutornet.tutor_net.repository.UserRepository;
+import com.tutornet.tutor_net.repository.*;
+import com.tutornet.tutor_net.service.ContractService;
 import com.tutornet.tutor_net.service.TutorInvitationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
@@ -25,6 +20,10 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -36,6 +35,8 @@ public class TutorInvitationServiceImpl implements TutorInvitationService {
     private final UserRepository userRepository;
     private final ApplicationEventPublisher eventPublisher;
     private final TutorInvitationMapper invitationMapper;
+    private final ContractRepository contractRepository;
+    private final ContractService contractService;
 
     @Override
     @Transactional(readOnly = true)
@@ -64,40 +65,52 @@ public class TutorInvitationServiceImpl implements TutorInvitationService {
         return invitations.map(invitationMapper::toResponse);
     }
 
+    /**
+     * 2. XÁC NHẬN KÝ & NHẬN LỚP (Gộp chung DB + PDF)
+     */
     @Override
     @Transactional
-    public void acceptInvitation(Long invitationId, Long tutorUserId) {
+    public void acceptAndSignContract(Long invitationId, Long tutorUserId, String ipAddress) {
 
-        // 1. Tải lời mời và xác thực quyền sở hữu
         TutorInvitation invitation = loadAndVerifyOwnership(invitationId, tutorUserId);
-
-        // 2. Chỉ PENDING mới được chấp nhận
         if (invitation.getStatus() != InvitationStatus.PENDING) {
-            throw new BadRequestException(
-                    "Lời mời #" + invitationId + " đang ở trạng thái "
-                            + invitation.getStatus() + ", không thể chấp nhận.");
+            throw new BadRequestException("Lời mời không hợp lệ để chấp nhận.");
         }
 
-        // 3. Đổi trạng thái lời mời → ACCEPTED
+        ClassRequest classRequest = invitation.getClassRequest();
+
+        // Trường hợp 2 gia sư được mời cùng lúc và cùng bấm nhận
+        if (classRequest.getStatus() == ClassRequestStatus.MATCHED || classRequest.getStatus() == ClassRequestStatus.CANCELLED) {
+            throw new BadRequestException("Rất tiếc, lớp học này đã có gia sư khác nhận hoặc đã bị hủy.");
+        }
+
+        // Cập nhật lời mời
         invitation.setStatus(InvitationStatus.ACCEPTED);
         invitationRepository.save(invitation);
 
-        // 4. Tự động sinh ClassRequest chính thức (status = MATCHED)
-        ClassRequest classRequest = buildMatchedClassRequest(invitation);
+        classRequest.setStatus(ClassRequestStatus.MATCHED);
+        classRequest.setTargetTutor(invitation.getTutor()); // Gắn cứng gia sư này vào lớp
         classRequestRepository.save(classRequest);
 
-        // 5. Lấy User học viên (null nếu khách vãng lai)
-        User studentUser = resolveStudentUser(invitation);
+        // Khởi tạo Contract vào DB
+        BigDecimal hourlyRate = classRequest.getHourlyRate() != null ? classRequest.getHourlyRate() : classRequest.getProposedPrice();
+        BigDecimal introFee = hourlyRate.multiply(BigDecimal.valueOf(16)).multiply(BigDecimal.valueOf(0.40));
+        String contractNumber = "HD-" + LocalDate.now().getYear() + "-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
 
-        // 6. Bắn event — AppEventListener sẽ tạo Contract DRAFT + gửi mail/notif
-        eventPublisher.publishEvent(new TutorAcceptedInvitationEvent(
-                classRequest.getId(),
-                invitation.getId(),
-                invitation.getTutor().getUser().getFullName(),
-                invitation.getStudentName(),
-                invitation.getStudentEmail(),
-                studentUser
-        ));
+        Contract contract = Contract.builder()
+                .contractNumber(contractNumber)
+                .classRequest(classRequest)
+                .tutor(invitation.getTutor())
+                .introductionFee(introFee)
+                .status(ContractStatus.PENDING_SIGNATURE)
+                .freeTrialCount(1)
+                .isFeePaid(false)
+                .effectiveDate(LocalDate.now())
+                .build();
+        contract = contractRepository.save(contract);
+
+        // in PDF từ ContractService
+        contractService.signContractAndGeneratePdf(contract.getId(), ipAddress);
     }
 
     // ---------------------------------------------------------------
@@ -111,24 +124,65 @@ public class TutorInvitationServiceImpl implements TutorInvitationService {
         TutorInvitation invitation = loadAndVerifyOwnership(invitationId, tutorUserId);
 
         if (invitation.getStatus() != InvitationStatus.PENDING) {
-            throw new BadRequestException(
-                    "Lời mời #" + invitationId + " đang ở trạng thái "
-                            + invitation.getStatus() + ", không thể từ chối.");
+            throw new BadRequestException("Không thể từ chối lời mời ở trạng thái " + invitation.getStatus());
         }
 
         invitation.setStatus(InvitationStatus.REJECTED);
         invitationRepository.save(invitation);
 
-        // Bắn event thông báo học viên (dùng lại TutorRespondedToInviteEvent có sẵn)
-        User studentUser = resolveStudentUser(invitation);
+        ClassRequest cr = invitation.getClassRequest();
+        User studentUser = cr.getUser(); // Có thể null nếu vãng lai
+
         eventPublisher.publishEvent(new TutorRespondedToInviteEvent(
-                null,                                           // Chưa có classRequestId khi từ chối
-                invitation.getStudentName(),
-                invitation.getStudentEmail(),
+                cr.getId(),
+                cr.getContactName(),
+                cr.getContactEmail(),
                 studentUser,
                 invitation.getTutor().getUser().getFullName(),
-                false                                           // isAccepted = false
+                false
         ));
+    }
+
+
+    /**
+     * 1. LẤY DỮ LIỆU NHÁP HIỂN THỊ LÊN MODAL (PREVIEW)
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public ContractPreviewResponse getContractPreview(Long invitationId, Long tutorUserId) {
+        TutorInvitation invitation = loadAndVerifyOwnership(invitationId, tutorUserId);
+        ClassRequest cr = invitation.getClassRequest();
+        User tutorUser = invitation.getTutor().getUser();
+
+        BigDecimal hourlyRate = cr.getHourlyRate() != null ? cr.getHourlyRate() : (cr.getProposedPrice() != null ? cr.getProposedPrice() : BigDecimal.ZERO);
+        BigDecimal introFee = hourlyRate.multiply(BigDecimal.valueOf(16)).multiply(BigDecimal.valueOf(0.40));
+
+        StringBuilder sb = new StringBuilder();
+        if (cr.getSessionsPerWeek() != null) {
+            sb.append(cr.getSessionsPerWeek()).append(" buổi / tuần");
+        }
+        if (cr.getDurationMinutes() != null) {
+            sb.append(" – Mỗi buổi ").append(cr.getDurationMinutes()).append(" phút");
+        }
+        String detailedSchedule = sb.isEmpty() ? "Theo thỏa thuận" : sb.toString();
+
+        return new ContractPreviewResponse(
+                tutorUser.getFullName(),
+                tutorUser.getBirthYear() != null ? tutorUser.getBirthYear() : 2000,
+                tutorUser.getPhone(),
+                tutorUser.getEmail(),
+
+                cr.getContactName(),
+                cr.getContactPhone(),
+                cr.getContactEmail(),
+                "Địa chỉ chi tiết sẽ hiển thị sau khi ký nhận",
+                cr.getSubject() != null ? cr.getSubject().getName() : "N/A",
+                hourlyRate,
+                cr.getSessionsPerWeek() + " buổi / tuần",
+                introFee,
+                cr.getClassCode(),
+                cr.getGradeLevel()
+        );
     }
 
     // ---------------------------------------------------------------
@@ -148,36 +202,5 @@ public class TutorInvitationServiceImpl implements TutorInvitationService {
             throw new AccessDeniedException("Bạn không có quyền thao tác với lời mời này.");
         }
         return invitation;
-    }
-
-    /**
-     * Chuyển dữ liệu TutorInvitation → ClassRequest mới với status MATCHED.
-     * Đây là bản ghi "lớp học chính thức" dùng để liên kết với Contract.
-     */
-    private ClassRequest buildMatchedClassRequest(TutorInvitation invitation) {
-        return ClassRequest.builder()
-                // Học viên có tài khoản → liên kết User; khách vãng lai → null
-                .user(resolveStudentUser(invitation))
-                .contactName(invitation.getStudentName())
-                .contactPhone(invitation.getStudentPhone())
-                .contactEmail(invitation.getStudentEmail())
-                // TutorInvitation không lưu subject → dùng subject từ TutorProfile nếu có,
-                // hoặc cần bổ sung field subjectId vào TutorInvitation sau này.
-                // Hiện tại để null và admin/hệ thống điền sau.
-                .subject(null)
-                .gradeLevel("N/A")                         // Sẽ cập nhật sau khi gia sư xác nhận
-                .teachingMode(TeachingMode.ONLINE)         // Mặc định, gia sư có thể cập nhật
-                .studentNotes(invitation.getMessage())
-                .targetTutor(invitation.getTutor())        // Gia sư đã chấp nhận
-                .status(ClassRequestStatus.MATCHED)        // Thẳng vào MATCHED
-                .build();
-    }
-
-    /**
-     * Lấy User học viên từ studentUserId (null nếu khách vãng lai).
-     */
-    private User resolveStudentUser(TutorInvitation invitation) {
-        if (invitation.getStudentUserId() == null) return null;
-        return userRepository.findById(invitation.getStudentUserId()).orElse(null);
     }
 }

@@ -1,11 +1,10 @@
 <!DOCTYPE html>
 <html lang="vi" xmlns:th="http://www.thymeleaf.org">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
     <title>Hợp Đồng Dịch Vụ và Giao Nhận Lớp Học - Ba Bên</title>
     <style>
-        /* Reset & căn chỉnh toàn trang – phong cách hợp đồng trang trọng, không màu mè, không icon */
         * {
             margin: 0;
             padding: 0;
@@ -14,7 +13,7 @@
 
         body {
             background-color: #e5e7eb;   /* nền xám nhẹ chỉ để thấy khung giấy */
-            font-family: 'Times New Roman', Times, serif;
+            font-family: 'Times New Roman', sans-serif;
             padding: 40px 24px;
             display: flex;
             justify-content: center;
@@ -259,7 +258,7 @@
     <table class="header-table">
         <tr>
             <td class="left-header" style="width: 48%;">
-                <div class="tutornet-name">HỆ THỐNG KẾT NỐI GIA SƯ<br>CÔNG NGHỆ TUTORNET</div>
+                <div class="tutornet-name">HỆ THỐNG KẾT NỐI GIA SƯ<br/>CÔNG NGHỆ TUTORNET</div>
                 <div class="sologan italic">Website: www.tutornet.vn</div>
             </td>
             <td class="right-header" style="width: 52%;">
@@ -311,7 +310,7 @@
     <p>Bên A tiến hành điều phối và bàn giao thông tin lớp học theo yêu cầu của Bên C cho Bên B thực hiện công tác giảng dạy với các chi tiết cụ thể như sau:</p>
 
     <table class="class-table">
-        <tr><th>Mã lớp học</th><td class="bold" th:text="${classCode}">TN-2026-MATH10</td><th>Môn học & Lớp</th><td th:text="${subjectAndLevel}">Toán học - Lớp 10 (Chương trình bồi dưỡng hình học)</td></tr>
+        <tr><th>Mã lớp học</th><td class="bold" th:text="${classCode}">TN-2026-MATH10</td><th>Môn học và Lớp</th><td th:text="${subjectAndLevel}">Toán học - Lớp 10 (Chương trình bồi dưỡng hình học)</td></tr>
         <tr><th>Học phí thỏa thuận</th><td class="bold" th:text="${tuitionRate} + ' VND / giờ'">250.000 VND / giờ</td><th>Dạy thử miễn phí</th><td>01 buổi đầu tiên (Thời lượng: 60 - 90 phút)</td></tr>
         <tr><th>Thời gian học</th><td colspan="3" th:text="${scheduleDetail}">3 buổi / tuần (Thứ 2, Thứ 4, Thứ 6 từ 18:00 đến 20:00)</td></tr>
         <tr><th>Địa điểm giảng dạy</th><td colspan="3" th:text="${studentAddress}">Số 456 Đường Nguyễn Huệ, Phường Bến Nghé, Quận 1, TP. Hồ Chí Minh</td></tr>

@@ -5,10 +5,12 @@ import com.tutornet.tutor_net.enums.InvitationStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-public interface TutorInvitationRepository extends JpaRepository<TutorInvitation, Long> {
+public interface TutorInvitationRepository extends JpaRepository<TutorInvitation, Long>,
+        JpaSpecificationExecutor<TutorInvitation> {
     /**
      * Lấy danh sách lời mời theo tutor_id, hỗ trợ phân trang.
      * Dùng index idx_tutor_invitations_tutor_id → truy vấn nhanh.
@@ -29,4 +31,6 @@ public interface TutorInvitationRepository extends JpaRepository<TutorInvitation
             @Param("status") InvitationStatus status,
             Pageable pageable
     );
+
+    boolean existsByClassRequest_IdAndTutor_IdAndStatus(Long classRequestId, Long tutorId, InvitationStatus status);
 }

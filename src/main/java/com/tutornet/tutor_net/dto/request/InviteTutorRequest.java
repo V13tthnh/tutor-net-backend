@@ -1,11 +1,14 @@
 package com.tutornet.tutor_net.dto.request;
 
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 
 public record InviteTutorRequest(
-        @NotBlank(message = "Tên không được để trống") String fullName,
-        @NotBlank(message = "Số điện thoại không được để trống") String phone,
-        @NotBlank(message = "Email không được để trống") @Email String email,
+
+        @NotNull(message = "Vui lòng chọn yêu cầu lớp học để mời gia sư")
+        Long classRequestId,
+
+        @Size(max = 500, message = "Lời nhắn gửi gia sư không được vượt quá 500 ký tự")
         String message
+
 ) {}

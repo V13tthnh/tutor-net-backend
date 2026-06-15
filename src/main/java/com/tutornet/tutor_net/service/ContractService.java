@@ -6,7 +6,6 @@ import jakarta.servlet.http.HttpServletRequest;
 
 public interface ContractService {
     ContractResponse createDraftContract(Long requestId);
-    void processClickwrapSigning(Long contractId, String ipAddress);
     /**
      * Gia sư bấm xác nhận ký hợp đồng (Clickwrap).
      * Thực hiện đủ 5 bước:
@@ -17,7 +16,7 @@ public interface ContractService {
      *  5. Cập nhật Contract → ACTIVE
      *
      * @param contractId ID hợp đồng cần ký
-     * @param request    HttpServletRequest để lấy IP client
+     * @param ipAddress địa chỉ ip
      */
-    void signContract(Long contractId, HttpServletRequest request);
+    void signContractAndGeneratePdf(Long contractId, String ipAddress);
 }

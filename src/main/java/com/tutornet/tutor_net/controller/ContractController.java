@@ -1,6 +1,5 @@
 package com.tutornet.tutor_net.controller;
 
-import com.tutornet.tutor_net.dto.response.ApiResponse;
 import com.tutornet.tutor_net.security.CustomUserDetails;
 import com.tutornet.tutor_net.service.ContractService;
 import jakarta.servlet.http.HttpServletRequest;
@@ -27,7 +26,9 @@ public class ContractController {
             @AuthenticationPrincipal CustomUserDetails userDetails,
             HttpServletRequest request
     ) {
-        contractSignService.signContract(contractId, request);
+        String ipAddress = request.getHeader("X-Forwarded-For");
+        if (ipAddress == null || ipAddress.isBlank()) ipAddress = request.getRemoteAddr();
+        contractSignService.signContractAndGeneratePdf(contractId, ipAddress);
         return ResponseEntity.ok().build();
     }
 }

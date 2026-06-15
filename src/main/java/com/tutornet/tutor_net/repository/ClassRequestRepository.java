@@ -1,7 +1,9 @@
 package com.tutornet.tutor_net.repository;
 
+import com.tutornet.tutor_net.dto.response.ClassRequestDropdownResponse;
 import com.tutornet.tutor_net.entity.ClassRequest;
 import com.tutornet.tutor_net.entity.Subject;
+import com.tutornet.tutor_net.enums.ClassRequestStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -85,4 +87,19 @@ public interface ClassRequestRepository extends JpaRepository<ClassRequest, Long
     List<Subject> findDistinctSubjectsInRequests();
 
     Optional<ClassRequest> findByClassCodeAndContactPhone(String classCode, String contactPhone);
+
+    @Query("""
+            SELECT new com.tutornet.tutor_net.dto.response.ClassRequestDropdownResponse(
+                c.id, c.classCode, s.name, c.gradeLevel, c.proposedPrice
+            )
+            FROM ClassRequest c
+            JOIN c.subject s
+            WHERE c.user.id = :userId 
+              AND c.status IN :statuses
+            ORDER BY c.createdAt DESC
+            """)
+    List<ClassRequestDropdownResponse> findDropdownByUserIdAndStatuses(
+            @Param("userId") Long userId,
+            @Param("statuses") List<ClassRequestStatus> statuses
+    );
 }

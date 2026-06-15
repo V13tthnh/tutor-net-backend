@@ -3,20 +3,25 @@ package com.tutornet.tutor_net.service.impl;
 import com.tutornet.tutor_net.dto.request.ClassRequest.CreateClassRequest;
 import com.tutornet.tutor_net.dto.request.ClassRequest.ReviewClassRequest;
 import com.tutornet.tutor_net.dto.request.ClassRequest.BulkReviewClassRequest;
+import com.tutornet.tutor_net.dto.response.ClassRequestDropdownResponse;
 import com.tutornet.tutor_net.dto.response.ClassRequestFilterOptionsResponse;
+import com.tutornet.tutor_net.dto.request.ClassRequest.TrackClassRequest;
 import com.tutornet.tutor_net.dto.response.ClassRequestResponse;
 import com.tutornet.tutor_net.dto.response.UserRoleResponse;
 import com.tutornet.tutor_net.entity.*;
 import com.tutornet.tutor_net.enums.ClassRequestStatus;
+import com.tutornet.tutor_net.enums.InvitationStatus;
 import com.tutornet.tutor_net.enums.TeachingMode;
 import com.tutornet.tutor_net.event.ClassRequestNotificationEvent;
 import com.tutornet.tutor_net.event.ClassRequestReviewedEvent;
 import com.tutornet.tutor_net.exception.BusinessException;
 import com.tutornet.tutor_net.exception.ResourceNotFoundException;
+import com.tutornet.tutor_net.exception.TooManyRequestsException;
 import com.tutornet.tutor_net.mapper.ClassRequestMapper;
 import com.tutornet.tutor_net.repository.*;
 import com.tutornet.tutor_net.service.ClassRequestService;
 import com.tutornet.tutor_net.service.MailService;
+import com.tutornet.tutor_net.service.RateLimiterService;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
@@ -43,9 +48,11 @@ public class ClassRequestServiceImpl implements ClassRequestService {
     private final SubjectRepository subjectRepo;
     private final TutorProfileRepository tutorProfileRepo;
     private final UserRepository userRepository;
+    private final TutorInvitationRepository tutorInvitationRepository;
     private final ClassRequestMapper mapper;
     private final ApplicationEventPublisher eventPublisher;
     private final MailService mailService;
+    private final RateLimiterService rateLimiterService;
 
     @Override
     @Transactional(readOnly = true)
@@ -100,22 +107,49 @@ public class ClassRequestServiceImpl implements ClassRequestService {
 
     @Override
     @Transactional(readOnly = true)
-    public ClassRequestResponse trackClassRequest(com.tutornet.tutor_net.dto.request.ClassRequest.TrackClassRequest request) {
+    public ClassRequestResponse trackClassRequest(TrackClassRequest request, String clientIp) {
+        String actionKey = "TRACKING_IP_" + clientIp;
+
+        if (rateLimiterService.isBlocked(actionKey)) {
+            throw new TooManyRequestsException("Bạn đã nhập sai quá nhiều lần. Vui lòng thử lại sau 15 phút");
+        }
+
+        String cleanClassCode = request.classCode() != null ? request.classCode().trim().toUpperCase() : "";
+        String cleanPhone = request.contactPhone() != null ? request.contactPhone().trim().replace(" ", "") : "";
 
         ClassRequest classRequest = classRequestRepo
-                .findByClassCodeAndContactPhone(request.classCode(), request.contactPhone())
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Không tìm thấy yêu cầu lớp học nào khớp với Mã lớp và Số điện thoại này. Vui lòng kiểm tra lại!"
-                ));
+                .findByClassCodeAndContactPhone(cleanClassCode, cleanPhone)
+                .orElse(null); // orElseGet để tự xử lý lỗi bên dưới
 
-        return mapper.toResponse(classRequest);
+        // Nếu  Không tìm thấy
+        if (classRequest == null) {
+            // Ghi nhận 1 lần sai (Tối đa 5 lần, khóa 15 phút)
+            rateLimiterService.recordFailedAttempt(actionKey, 5, 15);
+            throw new ResourceNotFoundException("Không tìm thấy yêu cầu lớp học nào khớp với Mã lớp và Số điện thoại này");
+        }
+
+        // Nếu tìm thấy Reset bộ đếm an toàn
+        rateLimiterService.resetAttempts(actionKey);
+
+        boolean hasAccount = userRepository.existsByPhone(classRequest.getContactPhone());
+
+        return mapper.toTrackingResponse(classRequest, hasAccount);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<ClassRequestDropdownResponse> getMyActiveRequestsForDropdown(Long userId) {
+        return classRequestRepo.findDropdownByUserIdAndStatuses(
+                userId,
+                List.of(ClassRequestStatus.PENDING, ClassRequestStatus.APPROVED)
+        );
     }
 
     @Override
     @Transactional
     public ClassRequestResponse createClassRequest(CreateClassRequest request, Long authenticatedUserId) {
 
-        // Nghiệp vụ Validate: Nếu học OFFLINE thì bắt buộc phải nhập địa chỉ chi tiết
+        // Nếu học OFFLINE thì bắt buộc phải nhập địa chỉ chi tiết
         TeachingMode mode = TeachingMode.valueOf(request.teachingMode().toUpperCase());
         if (mode == TeachingMode.OFFLINE && (request.addressDetail() == null || request.addressDetail().isBlank())) {
             throw BusinessException.validationFailed("Địa chỉ chi tiết là bắt buộc đối với hình thức học trực tiếp (OFFLINE)");
@@ -141,7 +175,7 @@ public class ClassRequestServiceImpl implements ClassRequestService {
         TutorProfile targetTutor = null;
         if (request.targetTutorId() != null) {
             targetTutor = tutorProfileRepo.findById(request.targetTutorId())
-                    .orElseThrow(() -> new BusinessException("Không tìm thấy gia sư mục tiêu"));
+                    .orElseThrow(() -> new BusinessException("Không tìm thấy gia sư cần mời"));
             classRequest.setTargetTutor(targetTutor);
         }
 
@@ -158,7 +192,7 @@ public class ClassRequestServiceImpl implements ClassRequestService {
 
         }
 
-        // LOGIC TÍNH LƯƠNG GIỜ ĐỒNG BỘ
+        // TÍNH LƯƠNG GIỜ ĐỒNG BỘ
         // Công thức: 1 tháng = 4 tuần
         // Lương giờ = Tổng lương / (Số buổi/tuần * 4 * Số giờ/buổi)
         double hoursPerSession = request.durationMinutes() / 60.0;
@@ -177,9 +211,24 @@ public class ClassRequestServiceImpl implements ClassRequestService {
         ClassRequest savedRequest = classRequestRepo.save(classRequest);
 
         // BẮN EVENT ĐỂ XỬ LÝ GỬI MAIL VÀ THÔNG BÁO (Chạy ngầm sau khi Commit DB)
-        User targetTutorUser = (savedRequest.getTargetTutor() != null)
-                ? savedRequest.getTargetTutor().getUser()
-                : null;
+        // NẾU NGƯỜI DÙNG MUỐN MỜI ĐÍCH DANH GIA SƯ (Tạo Lời Mời)
+        if (targetTutor != null) {
+            // Tự động sinh bản ghi vào bảng tutor_invitations
+            TutorInvitation invitation = TutorInvitation.builder()
+                    .tutor(targetTutor)
+                    .classRequest(savedRequest) // Liên kết khóa ngoại
+                    .message(request.studentNotes()) // Mượn trường note làm message
+                    .status(InvitationStatus.PENDING)
+                    .build();
+            tutorInvitationRepository.save(invitation);
+
+            // Gửi Mail cho gia sư
+            mailService.sendTutorDirectInviteEmail(
+                    targetTutor.getUser().getEmail(),
+                    targetTutor.getUser().getFullName(),
+                    subject.getName()
+            );
+        }
 
         eventPublisher.publishEvent(new ClassRequestNotificationEvent(
                 savedRequest.getId(),
@@ -406,7 +455,6 @@ public class ClassRequestServiceImpl implements ClassRequestService {
                         case "updatedAt" -> property = "updated_at";
                         case "proposedPrice" -> property = "proposed_price";
                         case "contactName" -> property = "contact_name";
-                        // Thêm các trường khác nếu frontend có nhu cầu sort bản tin
                         default -> property = "created_at";
                     }
                     return new Sort.Order(order.getDirection(), property);
