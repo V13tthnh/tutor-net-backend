@@ -102,4 +102,26 @@ public interface ClassRequestRepository extends JpaRepository<ClassRequest, Long
             @Param("userId") Long userId,
             @Param("statuses") List<ClassRequestStatus> statuses
     );
+
+    @Query("SELECT cr FROM ClassRequest cr " +
+            "LEFT JOIN cr.subject s " +
+            "WHERE cr.user.id = :userId " +
+            // 1. Lọc theo trạng thái (Dùng cờ boolean)
+            "  AND (:hasStatus = false OR cr.status = :status) " +
+            // 2. Tìm kiếm theo từ khóa
+            "  AND (:hasKeyword = false OR " +
+            "       LOWER(cr.classCode) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
+            "       OR LOWER(s.name) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
+            "       OR LOWER(cr.contactName) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
+            "       OR LOWER(cr.gradeLevel) LIKE LOWER(CONCAT('%', :keyword, '%')))")
+    Page<ClassRequest> searchMyClassRequests(
+            @Param("userId") Long userId,
+            @Param("keyword") String keyword,
+            @Param("hasKeyword") boolean hasKeyword,
+            @Param("status") ClassRequestStatus status,
+            @Param("hasStatus") boolean hasStatus,
+            Pageable pageable
+    );
+
+    Page<ClassRequest> findByUserId(Long userId, Pageable pageable);
 }

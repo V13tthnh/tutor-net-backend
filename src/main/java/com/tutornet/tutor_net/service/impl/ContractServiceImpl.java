@@ -9,6 +9,7 @@ import com.tutornet.tutor_net.event.ContractSignedEvent;
 import com.tutornet.tutor_net.exception.BadRequestException;
 import com.tutornet.tutor_net.exception.BusinessException;
 import com.tutornet.tutor_net.exception.ResourceNotFoundException;
+import com.tutornet.tutor_net.mapper.ContractMapper;
 import com.tutornet.tutor_net.repository.ClassRequestRepository;
 import com.tutornet.tutor_net.repository.ContractRepository;
 import com.tutornet.tutor_net.service.ContractService;
@@ -16,6 +17,8 @@ import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.core.io.ClassPathResource;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.thymeleaf.TemplateEngine;
@@ -30,8 +33,10 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.HexFormat;
+import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -42,6 +47,33 @@ public class ContractServiceImpl implements ContractService {
     private final TemplateEngine templateEngine;
     private final FileStorageServiceImpl fileStorageService;
     private final ApplicationEventPublisher eventPublisher;
+    private final ContractMapper contractMapper;
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<ContractResponse> getMyContracts(Long userId, String keyword, ContractStatus status, Pageable pageable) {
+
+        // 1. Chuẩn hóa từ khóa và gán cờ nhận diện
+        String cleanKeyword = (keyword != null && !keyword.isBlank()) ? keyword.trim() : null;
+        boolean hasKeyword = (cleanKeyword != null);
+        boolean hasStatus = (status != null);
+
+        // 2. Truyền chuỗi rỗng "" thay vì truyền null để tránh lỗi hàm CONCAT trong Postgres
+        String safeKeyword = hasKeyword ? cleanKeyword : "";
+
+        // 3. Gọi DB với các cờ báo hiệu
+        Page<Contract> contractPage = contractRepository.searchMyContracts(
+                userId,
+                safeKeyword,
+                hasKeyword,
+                status,
+                hasStatus,
+                pageable
+        );
+
+        // 4. Map sang DTO trả về cho Frontend
+        return contractPage.map(contract -> contractMapper.toResponse(contract, userId));
+    }
 
     @Override
     @Transactional
@@ -85,22 +117,7 @@ public class ContractServiceImpl implements ContractService {
         Contract savedContract = contractRepository.save(contract);
 
         // 7. Chuyển đổi dữ liệu sang DTO Response để trả về
-        return new ContractResponse(
-                savedContract.getId(),
-                savedContract.getContractNumber(),
-                classRequest.getId(),
-                classRequest.getContactName(),
-                classRequest.getContactPhone(),
-                classRequest.getTargetTutor().getId(),
-                classRequest.getTargetTutor().getUser().getFullName(),
-                savedContract.getIntroductionFee(),
-                savedContract.getEffectiveDate(),
-                savedContract.getFeePaymentDeadline(),
-                savedContract.getStatus(),
-                savedContract.getContractFileUrl(),
-                savedContract.getFreeTrialCount(),
-                savedContract.getCreatedAt()
-        );
+        return contractMapper.toResponse(savedContract);
     }
 
 

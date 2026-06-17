@@ -63,9 +63,6 @@ public class AuthServiceImpl implements AuthService {
         Role studentRole = roleRepository.findBySlug("student")
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy Role 'student' trong hệ thống"));
 
-        Role tutorRole = roleRepository.findBySlug("tutor")
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy Role 'tutor' trong hệ thống"));
-
         User user = User.builder()
                 .email(request.email())
                 .passwordHash(passwordEncoder.encode(request.password()))
@@ -75,7 +72,6 @@ public class AuthServiceImpl implements AuthService {
                 .build();
 
         user.getUserRoles().add(UserRole.builder().user(user).role(studentRole).build());
-        user.getUserRoles().add(UserRole.builder().user(user).role(tutorRole).build());
 
         User savedUser = userRepository.save(user);
 

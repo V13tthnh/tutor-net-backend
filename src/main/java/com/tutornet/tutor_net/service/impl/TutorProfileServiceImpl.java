@@ -24,6 +24,7 @@ public class TutorProfileServiceImpl implements TutorProfileService {
     private final TutorProfileRepository tutorProfileRepo;
     private final UserRepository userRepository;
     private final TutorSubjectRepository tutorSubjectRepo;
+    private final RoleRepository roleRepository;
     private final TutorAvailabilityRepository availabilityRepo;
     private final TutorCertificateRepository certificateRepo;
     private final SubjectRepository subjectRepo;
@@ -55,6 +56,11 @@ public class TutorProfileServiceImpl implements TutorProfileService {
             area.setWard(request.teachingWard());
             profile.getTeachingAreas().add(area);
         }
+
+        Role tutorRole = roleRepository.findBySlug("tutor")
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy Quyền 'tutor' trong hệ thống"));
+
+        user.getUserRoles().add(UserRole.builder().user(user).role(tutorRole).build());
 
         userRepository.save(user);
         tutorProfileRepo.save(profile);

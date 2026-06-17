@@ -32,4 +32,5 @@ public interface MailService {
                                           String tutorName);
 
     void sendContractAttachmentEmail(String toEmail, String recipientName, String contractNumber, byte[] pdfBytes);
+    void sendTutorApplicationAcceptedEmail(String toEmail, String tutorName, String studentName);
 }
