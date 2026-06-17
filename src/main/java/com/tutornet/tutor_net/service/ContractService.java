@@ -1,6 +1,8 @@
 package com.tutornet.tutor_net.service;
 
 
+import com.tutornet.tutor_net.dto.request.ContractDisputeRequest;
+import com.tutornet.tutor_net.dto.response.AdminContractResponse;
 import com.tutornet.tutor_net.dto.response.ContractResponse;
 import com.tutornet.tutor_net.enums.ContractStatus;
 import jakarta.servlet.http.HttpServletRequest;
@@ -24,4 +26,12 @@ public interface ContractService {
      * @param ipAddress địa chỉ ip
      */
     void signContractAndGeneratePdf(Long contractId, String ipAddress);
-    Page<ContractResponse> getMyContracts(Long userId, String keyword, ContractStatus status, Pageable pageable);}
+    Page<ContractResponse> getMyContracts(Long userId, String keyword, ContractStatus status, Pageable pageable);
+    Page<AdminContractResponse> getContractsForAdmin(String keyword, ContractStatus status, Boolean isFeePaid, Pageable pageable);
+
+    void confirmPaymentByAdmin(Long contractId, Long adminId);
+
+    void resolveContractDispute(Long contractId, ContractDisputeRequest request, Long adminId);
+
+    List<AdminContractResponse> getContractsForExport(ContractStatus status, Boolean isFeePaid);
+}

@@ -1,6 +1,8 @@
 package com.tutornet.tutor_net.service.impl;
 
 import com.openhtmltopdf.pdfboxout.PdfRendererBuilder;
+import com.tutornet.tutor_net.dto.request.ContractDisputeRequest;
+import com.tutornet.tutor_net.dto.response.AdminContractResponse;
 import com.tutornet.tutor_net.dto.response.ContractResponse;
 import com.tutornet.tutor_net.entity.ClassRequest;
 import com.tutornet.tutor_net.entity.Contract;
@@ -181,6 +183,80 @@ public class ContractServiceImpl implements ContractService {
                 contract.getClassRequest().getContactName(),
                 pdfBytes // Truyền mảng bytes thu được từ lệnh renderPdf trước đó sang
         ));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<AdminContractResponse> getContractsForAdmin(String keyword, ContractStatus status, Boolean isFeePaid, Pageable pageable) {
+        String cleanKeyword = (keyword != null && !keyword.isBlank()) ? keyword.trim() : null;
+        boolean hasKeyword = (cleanKeyword != null);
+        boolean hasStatus = (status != null);
+        boolean hasIsFeePaid = (isFeePaid != null);
+        String safeKeyword = hasKeyword ? cleanKeyword : "";
+
+        Page<Contract> contracts = contractRepository.findAllForAdmin(
+                safeKeyword, hasKeyword, status, hasStatus, isFeePaid, hasIsFeePaid, pageable
+        );
+
+        return contracts.map(contractMapper::toAdminResponse);
+    }
+
+    @Override
+    @Transactional
+    public void confirmPaymentByAdmin(Long contractId, Long adminId) {
+        Contract contract = contractRepository.findById(contractId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy hợp đồng yêu cầu."));
+
+        // Dùng Boolean.TRUE.equals để tránh lỗi NullPointerException nếu isFeePaid bị NULL
+        if (Boolean.TRUE.equals(contract.getIsFeePaid())) {
+            throw new BusinessException("Hợp đồng này đã được xác nhận đóng phí từ trước.");
+        }
+
+        // Cập nhật trạng thái dòng tiền
+        contract.setIsFeePaid(true);
+        contract.setPaidAt(LocalDateTime.now());
+
+        // Nếu hợp đồng đã được gia sư ký trước đó rồi, tự động kích hoạt trạng thái ACTIVE luôn
+        if (contract.getStatus() == ContractStatus.PENDING_SIGNATURE && contract.getSignedAt() != null) {
+            contract.setStatus(ContractStatus.ACTIVE);
+        }
+
+        contractRepository.save(contract);
+        // Đính kèm logic phát event thông báo in-app hoặc gửi mail biên nhận thu tiền tại đây (nếu có)
+    }
+
+    @Override
+    @Transactional
+    public void resolveContractDispute(Long contractId, ContractDisputeRequest request, Long adminId) {
+        Contract contract = contractRepository.findById(contractId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy hợp đồng xử lý sự cố."));
+
+        if (request.status() != ContractStatus.CANCELLED && request.status() != ContractStatus.VIOLATED) {
+            throw new BusinessException("Trạng thái xử lý tranh chấp không hợp lệ. Chỉ chấp nhận CANCELLED hoặc VIOLATED.");
+        }
+
+        contract.setStatus(request.status());
+
+        // Tận dụng trường ghi chú hoặc lưu vết lý do
+        // Giả sử hệ thống lưu vết log hoặc lưu thẳng vào trường contract_file_url/bảng log riêng.
+        // Ở đây ta cập nhật trạng thái đóng gói tài chính:
+        if (request.refundFee()) {
+            contract.setIsFeePaid(false);
+            contract.setPaidAt(null);
+        }
+
+        contractRepository.save(contract);
+        // Gửi mail thông báo cho cả Gia sư và Phụ huynh về quyết định can thiệp của Ban quản trị
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<AdminContractResponse> getContractsForExport(ContractStatus status, Boolean isFeePaid) {
+        boolean hasStatus = (status != null);
+        boolean hasIsFeePaid = (isFeePaid != null);
+
+        List<Contract> contracts = contractRepository.findAllForAdminExport(status, hasStatus, isFeePaid, hasIsFeePaid);
+        return contracts.stream().map(contractMapper::toAdminResponse).collect(Collectors.toList());
     }
 
     // ---------------------------------------------------------------
