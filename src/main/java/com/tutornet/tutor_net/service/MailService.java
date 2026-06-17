@@ -33,4 +33,6 @@ public interface MailService {
 
     void sendContractAttachmentEmail(String toEmail, String recipientName, String contractNumber, byte[] pdfBytes);
     void sendTutorApplicationAcceptedEmail(String toEmail, String tutorName, String studentName);
+    void sendApplicationRejectedByAdminEmail(String toEmail, String tutorName, String contactName);
+
 }

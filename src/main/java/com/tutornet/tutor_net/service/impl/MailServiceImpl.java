@@ -212,4 +212,19 @@ public class MailServiceImpl implements MailService {
             log.error("Lỗi gửi mail [{}] tới {}: {}", templateName, toEmail, e.getMessage());
         }
     }
+
+    @Override
+    @Async("mailExecutor")
+    public void sendApplicationRejectedByAdminEmail(String toEmail, String tutorName, String contactName) {
+        log.info("Gửi mail thông báo đơn bị ẩn tới {}", toEmail);
+        Context ctx = new Context();
+        ctx.setVariable("tutorName", tutorName);
+        ctx.setVariable("contactName", contactName);
+        sendHtmlEmail(
+                toEmail,
+                "TutorNet - Đơn ứng tuyển của bạn không được chấp thuận",
+                "application-rejected-by-admin",
+                ctx
+        );
+    }
 }

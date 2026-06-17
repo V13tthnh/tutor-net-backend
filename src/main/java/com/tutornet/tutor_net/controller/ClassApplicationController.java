@@ -15,7 +15,9 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/v1/class-requests/{classRequestId}/applications")
+@RequestMapping({
+        "/api/v1/class-requests/{classRequestId}/applications",
+})
 @RequiredArgsConstructor
 public class ClassApplicationController {
 
@@ -38,12 +40,12 @@ public class ClassApplicationController {
      * Học viên xem danh sách các gia sư đã ứng tuyển vào lớp của mình
      */
     @GetMapping
-    @PreAuthorize("hasAuthority('student_request:read')")
+    @PreAuthorize("hasAuthority('student_request:read') or hasAuthority('class_request:read')")
     public ResponseEntity<ApiResponse<List<ClassApplicationResponse>>> getApplicationsForClass(
             @PathVariable Long classRequestId,
             @AuthenticationPrincipal CustomUserDetails userDetails
     ) {
-        List<ClassApplicationResponse> responses = applicationService.getApplicationsForClass(classRequestId, userDetails.getUser().getId());
+        List<ClassApplicationResponse> responses = applicationService.getApplicationsForClass(classRequestId, userDetails);
         return ResponseEntity.ok(ApiResponse.ok(responses));
     }
 
@@ -60,4 +62,5 @@ public class ClassApplicationController {
         ClassApplicationResponse response = applicationService.acceptApplication(classRequestId, applicationId, userDetails.getUser().getId());
         return ResponseEntity.ok(ApiResponse.ok("Đã chốt gia sư thành công! Hợp đồng đang chờ gia sư ký nhận.", response));
     }
+
 }

@@ -2,11 +2,9 @@ package com.tutornet.tutor_net.controller;
 
 import com.tutornet.tutor_net.dto.request.ClassRequest.BulkReviewClassRequest;
 import com.tutornet.tutor_net.dto.request.ClassRequest.ReviewClassRequest;
-import com.tutornet.tutor_net.dto.response.ApiResponse;
-import com.tutornet.tutor_net.dto.response.ClassRequestFilterOptionsResponse;
-import com.tutornet.tutor_net.dto.response.ClassRequestResponse;
-import com.tutornet.tutor_net.dto.response.UserRoleResponse;
+import com.tutornet.tutor_net.dto.response.*;
 import com.tutornet.tutor_net.security.CustomUserDetails;
+import com.tutornet.tutor_net.service.ClassApplicationService;
 import com.tutornet.tutor_net.service.ClassRequestService;
 import com.tutornet.tutor_net.util.PageableUtils;
 import jakarta.validation.Valid;
@@ -25,6 +23,7 @@ import java.util.List;
 public class AdminClassRequestController {
 
     private final ClassRequestService classRequestService;
+    private final ClassApplicationService applicationService;
 
     // ─────────────────────────────────────────────────────────
     // GET /api/v1/admin/class-requests
@@ -62,6 +61,14 @@ public class AdminClassRequestController {
     public ResponseEntity<ApiResponse<ClassRequestResponse>> getDetail(@PathVariable Long id) {
         ClassRequestResponse response = classRequestService.getRequestDetailForAdmin(id);
         return ResponseEntity.ok(ApiResponse.ok(response));
+    }
+
+    @GetMapping("/{id}/applications")
+    @PreAuthorize("hasAuthority('class_request:read')")
+    public ResponseEntity<ApiResponse<List<ClassApplicationResponse>>> getApplications(
+            @PathVariable Long id) {
+        List<ClassApplicationResponse> responses = applicationService.getApplicationsForAdmin(id);
+        return ResponseEntity.ok(ApiResponse.ok(responses));
     }
 
     // ─────────────────────────────────────────────────────────
@@ -102,5 +109,14 @@ public class AdminClassRequestController {
         List<ClassRequestResponse> responses = classRequestService.reviewBulkClassRequests(bulkRequest, adminId);
 
         return ResponseEntity.ok(ApiResponse.ok(responses));
+    }
+
+    @PatchMapping("/{id}/applications/{applicationId}/hide")
+    @PreAuthorize("hasAuthority('class_request:manage')")
+    public ResponseEntity<ApiResponse<ClassApplicationResponse>> hideApplication(
+            @PathVariable Long id,
+            @PathVariable Long applicationId) {
+        ClassApplicationResponse response = applicationService.hideApplication(id, applicationId);
+        return ResponseEntity.ok(ApiResponse.ok("Đã ẩn đơn ứng tuyển thành công.", response));
     }
 }
