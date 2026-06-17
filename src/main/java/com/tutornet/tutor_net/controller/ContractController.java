@@ -33,16 +33,13 @@ public class ContractController {
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) ContractStatus status,
-            // 🌟 Chuẩn hóa bộ tham số phân trang
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(value = "limit", required = false) Integer limit,
             @RequestParam(defaultValue = "createdAt") String sortBy,
             @RequestParam(defaultValue = "desc") String sortDir
     ) {
-        // Build Pageable
         Pageable pageable = PageableUtils.build(page, size, limit, sortBy, sortDir);
-
         // Gọi Service trả về Page
         Page<ContractResponse> responses = contractService.getMyContracts(
                 userDetails.getUser().getId(),
@@ -50,13 +47,12 @@ public class ContractController {
                 status,
                 pageable
         );
-
         return ResponseEntity.ok(ApiResponse.ok(responses));
     }
 
     /**
      * POST /api/v1/contracts/{contractId}/sign
-     * Gia sư bấm checkbox xác nhận ký hợp đồng điện tử (Clickwrap).
+     * Gia sư bấm checkbox xác nhận ký hợp đồng điện tử
      */
     @PostMapping("/{contractId}/sign")
     @PreAuthorize("hasAuthority('contract:sign')")

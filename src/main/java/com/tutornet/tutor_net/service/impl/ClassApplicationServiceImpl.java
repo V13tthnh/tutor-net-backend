@@ -7,6 +7,7 @@ import com.tutornet.tutor_net.enums.ApplicationStatus;
 import com.tutornet.tutor_net.enums.ClassRequestStatus;
 import com.tutornet.tutor_net.enums.ContractStatus;
 import com.tutornet.tutor_net.event.TutorApplicationAcceptedEvent;
+import com.tutornet.tutor_net.event.TutorApplicationRejectedByAdminEvent;
 import com.tutornet.tutor_net.event.TutorAppliedEvent;
 import com.tutornet.tutor_net.event.TutorRespondedToInviteEvent;
 import com.tutornet.tutor_net.exception.BusinessException;
@@ -16,9 +17,12 @@ import com.tutornet.tutor_net.repository.ClassApplicationRepository;
 import com.tutornet.tutor_net.repository.ClassRequestRepository;
 import com.tutornet.tutor_net.repository.ContractRepository;
 import com.tutornet.tutor_net.repository.TutorProfileRepository;
+import com.tutornet.tutor_net.security.CustomUserDetails;
 import com.tutornet.tutor_net.service.ClassApplicationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -141,22 +145,28 @@ public class ClassApplicationServiceImpl implements ClassApplicationService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<ClassApplicationResponse> getApplicationsForClass(Long classRequestId, Long studentUserId) {
-
+    public List<ClassApplicationResponse> getApplicationsForClass(Long classRequestId, CustomUserDetails currentUser) {
         ClassRequest classRequest = classRequestRepo.findById(classRequestId)
-                .orElseThrow(() -> new ResourceNotFoundException("Lớp học không tồn tại."));
+                .orElseThrow(() -> new ResourceNotFoundException("Yêu cầu lớp học không tồn tại."));
 
-        // Kiểm tra người gọi API có phải là chủ sở hữu của lớp học này không
-        if (classRequest.getUser() == null || !classRequest.getUser().getId().equals(studentUserId)) {
+        // Chỉ cần check owner, bỏ hết logic isAdmin
+        if (classRequest.getUser() == null ||
+                !classRequest.getUser().getId().equals(currentUser.getUser().getId())) {
             throw BusinessException.forbidden("Bạn không có quyền xem danh sách ứng viên của lớp học này.");
         }
 
-        List<ClassApplication> applications = applicationRepo.findByClassRequestIdOrderByCreatedAtDesc(classRequestId);
-        int applicantsCount = applicationRepo.countByClassRequestId(classRequest.getId());
+        return applicationRepo.findByClassRequestId(classRequestId)
+                .stream().map(mapper::toResponse).collect(Collectors.toList());
+    }
 
-        return applications.stream()
-                .map(mapper::toResponse)
-                .collect(Collectors.toList());
+    @Override
+    @Transactional(readOnly = true)
+    public List<ClassApplicationResponse> getApplicationsForAdmin(Long classRequestId) {
+        classRequestRepo.findById(classRequestId)
+                .orElseThrow(() -> new ResourceNotFoundException("Yêu cầu lớp học không tồn tại."));
+
+        return applicationRepo.findByClassRequestId(classRequestId)
+                .stream().map(mapper::toResponse).collect(Collectors.toList());
     }
 
     /**
@@ -240,5 +250,43 @@ public class ClassApplicationServiceImpl implements ClassApplicationService {
         ));
 
         return mapper.toResponse(selectedApplication);
+    }
+
+    @Override
+    public ClassApplicationResponse hideApplication(Long classRequestId, Long applicationId) {
+
+        // 1. Kiểm tra lớp học tồn tại
+        ClassRequest classRequest = classRequestRepo.findById(classRequestId)
+                .orElseThrow(() -> new ResourceNotFoundException("Lớp học không tồn tại."));
+
+        // 2. Kiểm tra đơn ứng tuyển tồn tại và thuộc đúng lớp
+        ClassApplication application = applicationRepo.findById(applicationId)
+                .orElseThrow(() -> new ResourceNotFoundException("Đơn ứng tuyển không tồn tại."));
+
+        if (!application.getClassRequest().getId().equals(classRequestId)) {
+            throw BusinessException.validationFailed("Đơn ứng tuyển không thuộc về lớp học này.");
+        }
+
+        // 3. Chỉ được ẩn đơn đang PENDING
+        if (application.getStatus() != ApplicationStatus.PENDING) {
+            throw BusinessException.validationFailed(
+                    "Chỉ có thể ẩn đơn đang chờ xử lý. Đơn này đã ở trạng thái: " + application.getStatus()
+            );
+        }
+
+        // 4. Cập nhật status -> REJECTED
+        application.setStatus(ApplicationStatus.REJECTED);
+        applicationRepo.save(application);
+
+        // 5. Bắn Event thông báo cho gia sư
+        eventPublisher.publishEvent(new TutorApplicationRejectedByAdminEvent(
+                application.getId(),
+                application.getTutor().getUser().getId(),
+                application.getTutor().getUser().getEmail(),
+                application.getTutor().getUser().getFullName(),
+                classRequest.getContactName()
+        ));
+
+        return mapper.toResponse(application);
     }
 }

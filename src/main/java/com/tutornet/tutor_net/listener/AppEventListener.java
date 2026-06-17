@@ -233,6 +233,7 @@ public class AppEventListener {
      * Chạy SAU KHI transaction commit (AFTER_COMMIT) để tránh tạo Contract
      * khi DB rollback giữa chừng.
      */
+    @Async
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void onTutorAcceptedInvitation(TutorAcceptedInvitationEvent event) {
 
@@ -306,6 +307,7 @@ public class AppEventListener {
     /**
      * Gia sư được chọn (Học viên accept đơn ứng tuyển)
      */
+    @Async
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void onTutorApplicationAccepted(TutorApplicationAcceptedEvent event) {
 
@@ -332,6 +334,38 @@ public class AppEventListener {
                     event.tutorEmail(),
                     event.tutorName(),
                     event.studentName()
+            );
+        }
+    }
+
+    /**
+     * Admin ẩn đơn ứng tuyển của gia sư
+     */
+    @Async
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    public void onTutorApplicationRejectedByAdmin(TutorApplicationRejectedByAdminEvent event) {
+
+        log.info("Admin đã ẩn đơn ứng tuyển #{} của gia sư {}",
+                event.getApplicationId(), event.getTutorFullName());
+
+        // 1. Gửi thông báo in-app cho Gia sư
+        User tutor = userRepository.findById(event.getTutorUserId()).orElse(null);
+        if (tutor != null) {
+            notificationService.send(
+                    tutor,
+                    "application_rejected_by_admin",
+                    "Đơn ứng tuyển của bạn đã bị từ chối",
+                    "Đơn ứng tuyển vào lớp của phụ huynh " + event.getClassContactName() + " không được chấp thuận.",
+                    "{\"redirect\": \"/tutor/applications\"}"
+            );
+        }
+
+        // 2. Gửi email thông báo cho Gia sư
+        if (event.getTutorEmail() != null && !event.getTutorEmail().isBlank()) {
+            mailService.sendApplicationRejectedByAdminEmail(
+                    event.getTutorEmail(),
+                    event.getTutorFullName(),
+                    event.getClassContactName()
             );
         }
     }

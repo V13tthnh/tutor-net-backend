@@ -56,6 +56,7 @@ public class NotificationServiceImpl implements NotificationService {
 
     @Override
     @Async("notificationExecutor")
+    @Transactional
     public void send(User user, String type, String title, String body, String data) {
         Notification notification = Notification.builder()
                 .user(user)
