@@ -4,10 +4,9 @@ import com.tutornet.tutor_net.dto.request.ClassRequest;
 import com.tutornet.tutor_net.dto.request.ClassRequest.CreateClassRequest;
 import com.tutornet.tutor_net.dto.request.ClassRequest.ReviewClassRequest;
 import com.tutornet.tutor_net.dto.request.ClassRequest.BulkReviewClassRequest;
-import com.tutornet.tutor_net.dto.response.ClassRequestDropdownResponse;
-import com.tutornet.tutor_net.dto.response.ClassRequestFilterOptionsResponse;
-import com.tutornet.tutor_net.dto.response.ClassRequestResponse;
-import com.tutornet.tutor_net.dto.response.UserRoleResponse;
+import com.tutornet.tutor_net.dto.response.*;
+import com.tutornet.tutor_net.enums.ClassRequestStatus;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
 import java.util.List;
@@ -40,5 +39,6 @@ public interface ClassRequestService {
     ClassRequestResponse trackClassRequest(ClassRequest.TrackClassRequest request, String clientIp);
 
     List<ClassRequestDropdownResponse> getMyActiveRequestsForDropdown(Long userId);
-
+    Page<ClassRequestOwnResponse> getMyClassRequests(Long userId, Pageable pageable);
+    Page<ClassRequestOwnResponse> getMyClassRequests(Long userId, String keyword, ClassRequestStatus status, Pageable pageable);
 }

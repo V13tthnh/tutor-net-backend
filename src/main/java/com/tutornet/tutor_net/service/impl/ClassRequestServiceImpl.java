@@ -3,11 +3,8 @@ package com.tutornet.tutor_net.service.impl;
 import com.tutornet.tutor_net.dto.request.ClassRequest.CreateClassRequest;
 import com.tutornet.tutor_net.dto.request.ClassRequest.ReviewClassRequest;
 import com.tutornet.tutor_net.dto.request.ClassRequest.BulkReviewClassRequest;
-import com.tutornet.tutor_net.dto.response.ClassRequestDropdownResponse;
-import com.tutornet.tutor_net.dto.response.ClassRequestFilterOptionsResponse;
+import com.tutornet.tutor_net.dto.response.*;
 import com.tutornet.tutor_net.dto.request.ClassRequest.TrackClassRequest;
-import com.tutornet.tutor_net.dto.response.ClassRequestResponse;
-import com.tutornet.tutor_net.dto.response.UserRoleResponse;
 import com.tutornet.tutor_net.entity.*;
 import com.tutornet.tutor_net.enums.ClassRequestStatus;
 import com.tutornet.tutor_net.enums.InvitationStatus;
@@ -17,6 +14,7 @@ import com.tutornet.tutor_net.event.ClassRequestReviewedEvent;
 import com.tutornet.tutor_net.exception.BusinessException;
 import com.tutornet.tutor_net.exception.ResourceNotFoundException;
 import com.tutornet.tutor_net.exception.TooManyRequestsException;
+import com.tutornet.tutor_net.mapper.ClassApplicationMapper;
 import com.tutornet.tutor_net.mapper.ClassRequestMapper;
 import com.tutornet.tutor_net.repository.*;
 import com.tutornet.tutor_net.service.ClassRequestService;
@@ -103,6 +101,40 @@ public class ClassRequestServiceImpl implements ClassRequestService {
                 requestPage.getTotalPages(),
                 requestPage.isLast()
         );
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<ClassRequestOwnResponse> getMyClassRequests(Long userId, String keyword, ClassRequestStatus status, Pageable pageable) {
+
+        // 1. Chuẩn hóa từ khóa và thiết lập cờ (tránh lỗi PostgreSQL)
+        String cleanKeyword = (keyword != null && !keyword.isBlank()) ? keyword.trim() : null;
+        boolean hasKeyword = (cleanKeyword != null);
+        boolean hasStatus = (status != null);
+        String safeKeyword = hasKeyword ? cleanKeyword : "";
+
+        // 2. Gọi hàm tìm kiếm từ Repository
+        Page<ClassRequest> classRequests = classRequestRepo.searchMyClassRequests(
+                userId, safeKeyword, hasKeyword, status, hasStatus, pageable);
+
+        // 3. Map sang DTO và đếm số lượng gia sư ứng tuyển
+        return classRequests.map(classReq -> {
+            int count = applicationRepo.countByClassRequestId(classReq.getId());
+            return mapper.toOwnResponse(classReq, count);
+        });
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<ClassRequestOwnResponse> getMyClassRequests(Long userId, Pageable pageable) {
+        // Tải danh sách lớp học của user từ DB có phân trang
+        Page<ClassRequest> classRequests = classRequestRepo.findByUserId(userId, pageable);
+
+        // Dùng tính năng .map() của Page để lặp và đếm số lượng ứng viên cho từng lớp
+        return classRequests.map(classReq -> {
+            int count = applicationRepo.countByClassRequestId(classReq.getId());
+            return mapper.toOwnResponse(classReq, count);
+        });
     }
 
     @Override

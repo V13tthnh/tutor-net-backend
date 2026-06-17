@@ -1,6 +1,7 @@
 package com.tutornet.tutor_net.mapper;
 
 import com.tutornet.tutor_net.dto.request.ClassRequest.CreateClassRequest;
+import com.tutornet.tutor_net.dto.response.ClassRequestOwnResponse;
 import com.tutornet.tutor_net.dto.response.ClassRequestResponse;
 import com.tutornet.tutor_net.entity.ClassRequest;
 import com.tutornet.tutor_net.enums.TeachingMode;
@@ -152,5 +153,23 @@ public class ClassRequestMapper {
                 entity.getUpdatedAt(),
                 hasAccount
         );
+    }
+
+    public ClassRequestOwnResponse toOwnResponse(ClassRequest entity, int applicantsCount) {
+        if (entity == null) return null;
+
+        return ClassRequestOwnResponse.builder()
+                .id(entity.getId())
+                .classCode(entity.getClassCode())
+                .subjectName(entity.getSubject() != null ? entity.getSubject().getName() : null)
+                .gradeLevel(entity.getGradeLevel())
+                .proposedPrice(entity.getProposedPrice())
+                .hourlyRate(entity.getHourlyRate())
+                .teachingMode(entity.getTeachingMode())
+                .sessionsPerWeek(entity.getSessionsPerWeek() != null ? entity.getSessionsPerWeek().intValue() : 2)
+                .status(entity.getStatus())
+                .createdAt(entity.getCreatedAt())
+                .applicantsCount(applicantsCount)
+                .build();
     }
 }

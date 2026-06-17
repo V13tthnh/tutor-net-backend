@@ -302,4 +302,37 @@ public class AppEventListener {
             log.error("Lỗi nghiêm trọng khi gửi email đính kèm hợp đồng tĩnh: {}", e.getMessage(), e);
         }
     }
+
+    /**
+     * Gia sư được chọn (Học viên accept đơn ứng tuyển)
+     */
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    public void onTutorApplicationAccepted(TutorApplicationAcceptedEvent event) {
+
+        log.info("Học viên {} đã chọn gia sư {} cho lớp {}",
+                event.studentName(), event.tutorName(), event.classRequestId());
+
+        // 1. Gửi thông báo in-app cho Gia sư
+        if (event.tutorUserId() != null) {
+            User tutor = userRepository.findById(event.tutorUserId()).orElse(null);
+            if (tutor != null) {
+                notificationService.send(
+                        tutor,
+                        "application_accepted",
+                        "Chúc mừng! Phụ huynh đã chọn bạn 🎉",
+                        "Phụ huynh " + event.studentName() + " đã đồng ý chọn bạn dạy lớp của họ. Vui lòng xác nhận hợp đồng để nhận lớp.",
+                        "{\"redirect\": \"/account/my-classes\"}" // Dẫn thẳng ra màn quản lý hợp đồng của gia sư
+                );
+            }
+        }
+
+        // 2. Gửi email thông báo cho Gia sư
+        if (event.tutorEmail() != null && !event.tutorEmail().isBlank()) {
+            mailService.sendTutorApplicationAcceptedEmail(
+                    event.tutorEmail(),
+                    event.tutorName(),
+                    event.studentName()
+            );
+        }
+    }
 }

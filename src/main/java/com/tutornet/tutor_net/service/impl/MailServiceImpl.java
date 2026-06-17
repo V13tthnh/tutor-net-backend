@@ -120,25 +120,6 @@ public class MailServiceImpl implements MailService {
                 "class-request-rejected", ctx);
     }
 
-
-    private void sendHtmlEmail(String toEmail, String subject, String templateName,
-                               org.thymeleaf.context.Context ctx) {
-        try {
-            String htmlContent = templateEngine.process("email/" + templateName, ctx);
-
-            MimeMessage message = mailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
-            helper.setFrom("noreply@tutornet.com");
-            helper.setTo(toEmail);
-            helper.setSubject(subject);
-            helper.setText(htmlContent, true);
-
-            mailSender.send(message);
-        } catch (MessagingException e) {
-            log.error("Lỗi gửi mail [{}] tới {}: {}", templateName, toEmail, e.getMessage());
-        }
-    }
-
     @Override
     @Async("mailExecutor")
     public void sendTutorAcceptedInvitationEmail(String toEmail,
@@ -196,6 +177,39 @@ public class MailServiceImpl implements MailService {
         } catch (MessagingException e) {
             log.error("Lỗi cấu trúc gửi tệp đính kèm email hợp đồng {}: {}", contractNumber, e.getMessage());
             throw new RuntimeException("Không thể gửi email đính kèm hợp đồng: " + e.getMessage(), e);
+        }
+    }
+
+    @Override
+    @Async("mailExecutor")
+    public void sendTutorApplicationAcceptedEmail(String toEmail, String tutorName, String studentName) {
+        log.info("Gửi mail thông báo gia sư được chọn tới {}", toEmail);
+        Context ctx = new Context();
+        ctx.setVariable("tutorName", tutorName);
+        ctx.setVariable("studentName", studentName);
+        sendHtmlEmail(
+                toEmail,
+                "TutorNet - Chúc mừng! Bạn đã được chọn để nhận lớp",
+                "tutor-application-accepted",
+                ctx
+        );
+    }
+
+    private void sendHtmlEmail(String toEmail, String subject, String templateName,
+                               org.thymeleaf.context.Context ctx) {
+        try {
+            String htmlContent = templateEngine.process("email/" + templateName, ctx);
+
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+            helper.setFrom("noreply@tutornet.com");
+            helper.setTo(toEmail);
+            helper.setSubject(subject);
+            helper.setText(htmlContent, true);
+
+            mailSender.send(message);
+        } catch (MessagingException e) {
+            log.error("Lỗi gửi mail [{}] tới {}: {}", templateName, toEmail, e.getMessage());
         }
     }
 }

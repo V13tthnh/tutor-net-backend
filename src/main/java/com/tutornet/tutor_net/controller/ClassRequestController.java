@@ -2,16 +2,15 @@ package com.tutornet.tutor_net.controller;
 
 import com.tutornet.tutor_net.dto.request.ClassRequest;
 import com.tutornet.tutor_net.dto.request.ClassRequest.CreateClassRequest;
-import com.tutornet.tutor_net.dto.response.ApiResponse;
-import com.tutornet.tutor_net.dto.response.ClassRequestDropdownResponse;
-import com.tutornet.tutor_net.dto.response.ClassRequestResponse;
-import com.tutornet.tutor_net.dto.response.UserRoleResponse;
+import com.tutornet.tutor_net.dto.response.*;
+import com.tutornet.tutor_net.enums.ClassRequestStatus;
 import com.tutornet.tutor_net.security.CustomUserDetails;
 import com.tutornet.tutor_net.service.ClassRequestService;
 import com.tutornet.tutor_net.util.PageableUtils;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -55,6 +54,31 @@ public class ClassRequestController {
         return ResponseEntity.ok(ApiResponse.ok(responsePage));
     }
 
+    @GetMapping("/my-classes")
+    @PreAuthorize("hasAuthority('student_request:read')")
+    public ResponseEntity<ApiResponse<Page<ClassRequestOwnResponse>>> getMyClassRequests(
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            // 🌟 Đón nhận thêm 2 tham số lọc
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) ClassRequestStatus status,
+            // 🌟 Tham số phân trang
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) Integer limit,
+            @RequestParam(defaultValue = "createdAt") String sortBy,
+            @RequestParam(defaultValue = "desc") String sortDir
+    ) {
+        Pageable pageable = PageableUtils.build(page, size, limit, sortBy, sortDir);
+
+        Page<ClassRequestOwnResponse> responses = classRequestService.getMyClassRequests(
+                userDetails.getUser().getId(),
+                keyword,
+                status,
+                pageable
+        );
+
+        return ResponseEntity.ok(ApiResponse.ok(responses));
+    }
     /**
      * API Công khai cho Khách vãng lai tra cứu trạng thái lớp học
      * POST /api/v1/class-requests/track
@@ -91,7 +115,7 @@ public class ClassRequestController {
         return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
 
-    @PostMapping("/invite-tutor") // Hoặc endpoint tương tự
+    @PostMapping("/invite-tutor")
     public ResponseEntity<ApiResponse<ClassRequestResponse>> inviteTutor(
             @Valid @RequestBody CreateClassRequest request,
             @AuthenticationPrincipal CustomUserDetails currentUser) {

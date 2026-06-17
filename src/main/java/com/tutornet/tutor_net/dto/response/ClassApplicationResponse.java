@@ -1,17 +1,25 @@
 package com.tutornet.tutor_net.dto.response;
 
 import com.tutornet.tutor_net.enums.ApplicationStatus;
+import lombok.Builder;
+
 import java.time.LocalDateTime;
 
+@Builder
 public record ClassApplicationResponse(
         Long id,
-        Long requestId,
+        Long classRequestId,
+
         Long tutorId,
         String tutorName,
-        String tutorAvatar,
-        String tutorUniversity,
-        String tutorMajor,
+        String tutorAvatarUrl,
+        String university,
+        String major,
+
+        String headline,
+        Integer experienceYears,
+
         ApplicationStatus status,
         String message,
-        LocalDateTime createdAt
+        LocalDateTime appliedAt
 ) {}

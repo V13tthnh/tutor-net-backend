@@ -10,17 +10,19 @@ public class ClassApplicationMapper {
     public ClassApplicationResponse toResponse(ClassApplication entity) {
         if (entity == null) return null;
 
-        return new ClassApplicationResponse(
-                entity.getId(),
-                entity.getClassRequest().getId(),
-                entity.getTutor().getId(),
-                entity.getTutor().getUser().getFullName(),
-                entity.getTutor().getUser().getAvatarUrl(),
-                entity.getTutor().getUniversity(),
-                entity.getTutor().getMajor(),
-                entity.getStatus(),
-                entity.getMessage(),
-                entity.getCreatedAt()
-        );
+        return ClassApplicationResponse.builder()
+                .id(entity.getId())
+                .classRequestId(entity.getClassRequest().getId())
+                .tutorId(entity.getTutor().getId())
+                .tutorName(entity.getTutor().getUser().getFullName())
+                .tutorAvatarUrl(entity.getTutor().getUser().getAvatarUrl())
+                .university(entity.getTutor().getUniversity())
+                .major(entity.getTutor().getMajor())
+                .headline(entity.getTutor().getHeadline())
+                .experienceYears(entity.getTutor().getExperienceYears())
+                .status(entity.getStatus())
+                .message(entity.getMessage())
+                .appliedAt(entity.getCreatedAt())
+                .build();
     }
 }

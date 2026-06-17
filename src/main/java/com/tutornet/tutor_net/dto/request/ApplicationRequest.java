@@ -5,17 +5,15 @@ import jakarta.validation.constraints.*;
 
 public class ApplicationRequest {
 
-    // Gia sư bấm ứng tuyển
+    // gia sư bấm ứng tuyển
     public record ApplyClassRequest(
-            @NotNull Long requestId,
-            @Size(max = 1000) String message,
-            @Email String contactEmail // Thêm trường này để nhận email từ vãng lai
+            @Size(max = 500, message = "Lời nhắn giới thiệu không được vượt quá 500 ký tự")
+            String message
     ) {}
 
-    // Học viên hoặc Admin duyệt hồ sơ ứng tuyển của gia sư
+    // học viên hoặc Admin duyệt hồ sơ ứng tuyển của gia sư
     public record UpdateApplicationStatusRequest(
             @NotNull(message = "Vui lòng chọn trạng thái phê duyệt")
             ApplicationStatus status
     ) {}
-
 }
