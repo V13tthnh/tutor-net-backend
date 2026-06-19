@@ -20,7 +20,6 @@ public class TutorInvitation {
     @JoinColumn(name = "tutor_id", nullable = false)
     private TutorProfile tutor;
 
-    // 🌟 CHỈ GIỮ LẠI LIÊN KẾT NÀY (Đại diện cho toàn bộ thông tin Học viên)
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "class_request_id", nullable = false)
     private ClassRequest classRequest;

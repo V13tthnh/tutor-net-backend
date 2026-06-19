@@ -2,8 +2,7 @@ package com.tutornet.tutor_net.dto.response;
 import com.tutornet.tutor_net.enums.ContractStatus;
 import lombok.Builder;
 import java.math.BigDecimal;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 @Builder
 public record AdminContractResponse(
@@ -25,12 +24,13 @@ public record AdminContractResponse(
         // Tài chính
         BigDecimal introductionFee,
         Boolean isFeePaid,
-        LocalDateTime paidAt,
-        LocalDate feePaymentDeadline,
+        Instant paidAt,
+        Instant feePaymentDeadline,
+        Instant endDate,
 
         // Trạng thái & Pháp lý
         ContractStatus status,
-        LocalDateTime signedAt,
-        LocalDateTime createdAt,
-        LocalDateTime updatedAt
+        Instant signedAt,
+        Instant createdAt,
+        Instant updatedAt
 ) {}

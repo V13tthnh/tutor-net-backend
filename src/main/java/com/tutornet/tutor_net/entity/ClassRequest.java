@@ -3,6 +3,9 @@ package com.tutornet.tutor_net.entity;
 import com.tutornet.tutor_net.enums.ClassRequestStatus;
 import com.tutornet.tutor_net.enums.TeachingMode;
 import jakarta.persistence.*;
+
+import java.time.Instant;
+import java.time.ZoneId;
 import java.util.regex.Pattern;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -12,7 +15,6 @@ import org.hibernate.type.SqlTypes;
 
 import java.math.BigDecimal;
 import java.text.Normalizer;
-import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Random;
 
@@ -56,7 +58,9 @@ public class ClassRequest {
             }
 
             // 2. Format Thời gian: YYMMDDHHmm (10 ký tự)
-            String timeString = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyMMddHHmm"));
+            String timeString = Instant.now()
+                    .atZone(ZoneId.systemDefault())
+                    .format(DateTimeFormatter.ofPattern("yyMMddHHmm"));
 
             // 3. 3 số ngẫu nhiên (từ 000 đến 999)
             int randomNum = new Random().nextInt(1000);
@@ -102,6 +106,7 @@ public class ClassRequest {
     @Enumerated(EnumType.STRING)
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     @Column(name = "teaching_mode", nullable = false, columnDefinition = "teaching_mode")
+    @Builder.Default
     private TeachingMode teachingMode = TeachingMode.ONLINE;
 
     @Column(name = "address_detail", columnDefinition = "TEXT")
@@ -117,6 +122,7 @@ public class ClassRequest {
     @Enumerated(EnumType.STRING)
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     @Column(name = "status", nullable = false, columnDefinition = "class_request_status")
+    @Builder.Default
     private ClassRequestStatus status = ClassRequestStatus.PENDING;
 
     @Column(name = "rejection_reason", columnDefinition = "TEXT")
@@ -124,9 +130,9 @@ public class ClassRequest {
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
-    private LocalDateTime createdAt;
+    private Instant  createdAt;
 
     @UpdateTimestamp
     @Column(name = "updated_at", nullable = false)
-    private LocalDateTime updatedAt;
+    private Instant updatedAt;
 }

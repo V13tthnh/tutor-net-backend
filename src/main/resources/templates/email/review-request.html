@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Yêu cầu đánh giá gia sư</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+            font-family: Arial, sans-serif;
+            -webkit-font-smoothing: antialiased;
+        }
+        table {
+            border-collapse: collapse;
+        }
+    </style>
+</head>
+<body style="margin: 0; padding: 0; background-color: #f4f4f4; font-family: Arial, sans-serif;">
+
+<table style="background-color: #f4f4f4; padding: 40px 0; width: 100%;">
+    <tr>
+        <td align="center">
+            <table width="600" style="background-color: #ffffff; border: 1px solid #dddddd; max-width: 600px;">
+
+                <tr>
+                    <td align="center" style="padding: 30px 40px 20px 40px; border-bottom: 2px solid #333333;">
+                        <h2 style="margin: 0; color: #333333; font-size: 24px; letter-spacing: 2px; text-transform: uppercase;">TutorNet</h2>
+                    </td>
+                </tr>
+
+                <tr>
+                    <td style="padding: 40px 40px 30px 40px; color: #333333; line-height: 1.6; font-size: 15px;">
+                        <p style="margin: 0 0 20px 0;">Xin chào <strong th:text="${studentName}">[Tên Học Viên]</strong>,</p>
+
+                        <p style="margin: 0 0 20px 0;">Chúc mừng bạn đã hoàn thành lớp học cùng với Gia sư <strong th:text="${tutorName}">[Tên Gia Sư]</strong>. Nền tảng TutorNet hy vọng bạn đã có những trải nghiệm học tập thật tuyệt vời và đạt được kết quả như mong muốn.</p>
+
+                        <table style="background-color: #f9f9f9; border-left: 4px solid #333333; margin: 0 0 20px 0; width: 100%;">
+                            <tr>
+                                <td style="font-size: 14px; color: #333333; padding: 15px;">
+                                    <strong>Bạn cảm thấy Gia sư của mình như thế nào?</strong><br><br>
+                                    Chỉ mất khoảng 15 giây để để lại một vài lời nhận xét. Đánh giá của bạn là nguồn động lực rất lớn, giúp gia sư cải thiện chất lượng giảng dạy và giúp các học viên khác có thêm thông tin hữu ích!
+                                </td>
+                            </tr>
+                        </table>
+
+                        <p style="margin: 0 0 20px 0;">Vui lòng nhấn vào nút dưới đây để truy cập trang đánh giá (bạn không cần phải đăng nhập tài khoản để thực hiện thao tác này).</p>
+
+                        <table style="margin: 30px 0; width: 100%;">
+                            <tr>
+                                <td align="center">
+                                    <a th:href="${reviewLink}"
+                                       style="background-color: #333333; color: #ffffff; text-decoration: none; padding: 12px 30px; font-size: 14px; font-weight: bold; border-radius: 2px; display: inline-block; text-transform: uppercase;">
+                                        Đánh giá gia sư ngay
+                                    </a>
+                                </td>
+                            </tr>
+                        </table>
+
+                        <p style="margin: 0 0 10px 0; font-size: 14px; color: #666666; font-style: italic;">
+                            Lưu ý: Đường dẫn này là liên kết bảo mật dành riêng cho hợp đồng của bạn và chỉ có thể sử dụng 1 lần duy nhất. Đánh giá của bạn sẽ được hiển thị trên hồ sơ công khai của gia sư.
+                        </p>
+                    </td>
+                </tr>
+
+                <tr>
+                    <td style="padding: 20px 40px; background-color: #f9f9f9; border-top: 1px solid #dddddd; color: #666666; font-size: 12px; line-height: 1.5; text-align: center;">
+                        <p style="margin: 0 0 10px 0;">Đây là email tự động từ hệ thống TutorNet. Vui lòng không trả lời email này.</p>
+                        <p style="margin: 0;">Trân trọng,<br>Đội ngũ Vận hành TutorNet.</p>
+                    </td>
+                </tr>
+            </table>
+        </td>
+    </tr>
+</table>
+</body>
+</html>

@@ -1,7 +1,9 @@
 package com.tutornet.tutor_net.listener;
 
+import com.tutornet.tutor_net.entity.Contract;
 import com.tutornet.tutor_net.entity.User;
 import com.tutornet.tutor_net.event.*;
+import com.tutornet.tutor_net.repository.ContractRepository;
 import com.tutornet.tutor_net.repository.UserRepository;
 import com.tutornet.tutor_net.service.ContractService;
 import com.tutornet.tutor_net.service.MailService;
@@ -24,6 +26,7 @@ public class AppEventListener {
     private final NotificationService notificationService;
     private final UserRepository userRepository;
     private final ContractService contractService;
+    private final ContractRepository contractRepository;
 
     // ── Auth events ──
 
@@ -228,6 +231,45 @@ public class AppEventListener {
         );
     }
 
+
+    @Async
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    public void onContractCompleted(ContractCompletedEvent event) {
+
+        log.info("Hợp đồng {} đã chuyển sang COMPLETED. Bắt đầu gửi yêu cầu đánh giá.", event.contractNumber());
+
+        String magicToken = java.util.UUID.randomUUID().toString() + "-" + event.contractId();
+        String reviewLink = "http://localhost:3000/reviews/guest?contractId="
+                + event.contractId() + "&token=" + magicToken;
+
+        contractRepository.updateGuestReviewToken(event.contractId(), magicToken);
+
+        // Truy vấn lại User trong một Session mới, an toàn tuyệt đối với Lazy Load
+        if (event.studentUserId() != null) {
+            User student = userRepository.findById(event.studentUserId()).orElse(null);
+
+            if (student != null) {
+                notificationService.send(
+                        student,
+                        "contract_completed",
+                        "Khóa học hoàn tất! Hãy đánh giá gia sư nhé \uD83C\uDF93",
+                        "Bạn cảm thấy Gia sư " + event.tutorName() + " như thế nào? Dành chút thời gian để lại nhận xét nhé.",
+                        "{\"redirect\": \"/student/contracts/" + event.contractId() + "?action=review\"}"
+                );
+            }
+        }
+
+        // Gửi Email không hề bị ảnh hưởng
+        if (event.studentEmail() != null && !event.studentEmail().isBlank()) {
+            mailService.sendReviewRequestEmail(
+                    event.studentEmail(),
+                    event.studentName(),
+                    event.tutorName(),
+                    reviewLink
+            );
+        }
+    }
+
     /**
      * Gia sư chấp nhận lời mời → tạo Contract DRAFT + gửi mail/notif cho học viên.
      * Chạy SAU KHI transaction commit (AFTER_COMMIT) để tránh tạo Contract
@@ -366,6 +408,46 @@ public class AppEventListener {
                     event.getTutorEmail(),
                     event.getTutorFullName(),
                     event.getClassContactName()
+            );
+        }
+    }
+
+    // ── Review Submitted Event ──
+
+    @Async
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    public void onNewReviewSubmitted(NewReviewSubmittedEvent event) {
+
+        log.info("Có đánh giá mới {} sao từ {} dành cho Gia sư ID: {}",
+                event.rating(), event.reviewerName(), event.tutorUserId());
+
+        // Lấy lại User Gia sư từ DB (tránh Lazy Load)
+        User tutor = userRepository.findById(event.tutorUserId()).orElse(null);
+
+        if (tutor != null) {
+            String title = event.rating() >= 4 ? "Bạn có một đánh giá tuyệt vời!" : "Bạn có một đánh giá mới";
+            String body = event.reviewerName() + " vừa để lại đánh giá " + event.rating() + " sao cho lớp học của bạn.";
+
+            notificationService.send(
+                    tutor,
+                    "new_review_received",
+                    title,
+                    body,
+                    "{\"redirect\": \"/tutor/reviews\"}" // Dẫn về trang quản lý đánh giá của gia sư
+            );
+        }
+
+        // Nếu là đánh giá tiêu cực (1-2 sao), báo ngay cho Admin để giải quyết
+        if (event.rating() <= 2) {
+            List<User> admins = userRepository.findAllAdmins();
+            admins.forEach(admin ->
+                    notificationService.send(
+                            admin,
+                            "negative_review_alert",
+                            "⚠️ Cảnh báo đánh giá thấp",
+                            "Gia sư " + tutor.getFullName() + " vừa nhận 1 đánh giá " + event.rating() + " sao. Hãy kiểm tra ngay.",
+                            "{\"redirect\": \"/admin/reviews\"}"
+                    )
             );
         }
     }

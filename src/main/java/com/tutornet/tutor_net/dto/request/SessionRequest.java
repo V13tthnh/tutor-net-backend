@@ -3,7 +3,7 @@ package com.tutornet.tutor_net.dto.request;
 import com.tutornet.tutor_net.enums.SessionStatus;
 import jakarta.validation.constraints.*;
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 public class SessionRequest {
 
@@ -12,7 +12,7 @@ public class SessionRequest {
             Long contractId,
 
             @NotNull(message = "Thời gian học không được để trống")
-            LocalDateTime scheduledAt,
+            Instant scheduledAt,
 
             @Min(value = 15, message = "Thời lượng buổi học tối thiểu là 15 phút")
             Integer durationMinutes,

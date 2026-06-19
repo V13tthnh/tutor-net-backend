@@ -7,7 +7,7 @@ import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.Instant ;
 
 @Entity
 @Table(name = "transactions")
@@ -46,12 +46,15 @@ public class Transaction {
     @Column(name = "gateway_reference")
     private String gatewayReference;
 
+    @Column(name = "note")
+    private String note;
+
     @Column(name = "paid_at")
-    private LocalDateTime paidAt;
+    private Instant  paidAt;
 
     @CreationTimestamp
-    private LocalDateTime createdAt;
+    private Instant  createdAt;
 
     @UpdateTimestamp
-    private LocalDateTime updatedAt;
+    private Instant  updatedAt;
 }

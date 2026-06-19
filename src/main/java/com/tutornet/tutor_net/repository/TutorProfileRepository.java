@@ -11,6 +11,7 @@ import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -88,4 +89,14 @@ public interface TutorProfileRepository extends JpaRepository<TutorProfile, Long
         ORDER BY s.name ASC
     """)
     List<Subject> findDistinctSubjectsInProfiles();
+
+    // Đếm số lượng gia sư đăng ký mới trong khoảng thời gian
+    @Query("SELECT COUNT(tp) FROM TutorProfile tp WHERE tp.createdAt >= :fromDate AND tp.createdAt <= :toDate")
+    long countByCreatedAtBetween(
+            @Param("fromDate") Instant fromDate,
+            @Param("toDate") Instant toDate
+    );
+
+    // Lấy danh sách gia sư theo trạng thái
+    Page<TutorProfile> findByStatus(TutorStatus status, Pageable pageable);
 }

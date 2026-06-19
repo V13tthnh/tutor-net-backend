@@ -3,7 +3,7 @@ package com.tutornet.tutor_net.dto.response;
 import com.tutornet.tutor_net.enums.ApplicationStatus;
 import lombok.Builder;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 @Builder
 public record ClassApplicationResponse(
@@ -21,5 +21,5 @@ public record ClassApplicationResponse(
 
         ApplicationStatus status,
         String message,
-        LocalDateTime appliedAt
+        Instant appliedAt
 ) {}

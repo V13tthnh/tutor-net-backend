@@ -13,6 +13,14 @@ import org.springframework.stereotype.Service;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
 
+import java.math.BigDecimal;
+import java.text.NumberFormat;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.util.Locale;
+
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -224,6 +232,59 @@ public class MailServiceImpl implements MailService {
                 toEmail,
                 "TutorNet - Đơn ứng tuyển của bạn không được chấp thuận",
                 "application-rejected-by-admin",
+                ctx
+        );
+    }
+
+    @Override
+    public void sendPaymentReminderEmail(String to, String name, String contractNumber, BigDecimal amount, Instant deadline) {
+        try {
+            Context context = new Context();
+            context.setVariable("name", name);
+            context.setVariable("contractNumber", contractNumber);
+
+            // Format tiền tệ VNĐ
+            NumberFormat format = NumberFormat.getCurrencyInstance(new Locale("vi", "VN"));
+            context.setVariable("amount", format.format(amount));
+
+            // Format ngày tháng
+            DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+            context.setVariable(
+                    "deadline",
+                    deadline.atZone(ZoneId.of("Asia/Ho_Chi_Minh"))
+                            .format(dateFormatter)
+            );
+
+            // Cần tạo 1 file payment-reminder.html trong thư mục resources/templates/email
+            String html = templateEngine.process("email/payment-reminder", context);
+
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+
+            helper.setTo(to);
+            helper.setSubject("TutorNet - Nhắc nhở thanh toán phí nhận lớp (Hợp đồng " + contractNumber + ")");
+            helper.setText(html, true);
+
+            mailSender.send(message);
+        } catch (MessagingException e) {
+            log.error("Lỗi khi gửi email nhắc nợ thanh toán đến {}: {}", to, e.getMessage());
+        }
+    }
+
+    @Override
+    @Async("mailExecutor")
+    public void sendReviewRequestEmail(String toEmail, String studentName, String tutorName, String reviewLink) {
+        log.info("Gửi mail yêu cầu đánh giá gia sư tới {}", toEmail);
+
+        Context ctx = new Context();
+        ctx.setVariable("studentName", studentName);
+        ctx.setVariable("tutorName", tutorName);
+        ctx.setVariable("reviewLink", reviewLink); // Đổ link chứa Token vào nút bấm
+
+        sendHtmlEmail(
+                toEmail,
+                "TutorNet - Khóa học hoàn tất! Hãy để lại đánh giá cho gia sư của bạn",
+                "review-request", // Sẽ map với file: resources/templates/email/review-request.html
                 ctx
         );
     }

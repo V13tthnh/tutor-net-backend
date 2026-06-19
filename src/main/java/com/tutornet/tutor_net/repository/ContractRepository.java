@@ -2,15 +2,20 @@ package com.tutornet.tutor_net.repository;
 
 import com.tutornet.tutor_net.entity.Contract;
 import com.tutornet.tutor_net.enums.ContractStatus;
+import jakarta.transaction.Transactional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import java.time.LocalDate;
+import java.time.Instant;
+import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface ContractRepository extends JpaRepository<Contract, Long> {
@@ -79,5 +84,40 @@ public interface ContractRepository extends JpaRepository<Contract, Long> {
             "WHERE c.status = 'ACTIVE' " +
             "AND c.isFeePaid = false " +
             "AND c.feePaymentDeadline <= :targetDate")
-    List<Contract> findContractsPendingPayment(@Param("targetDate") LocalDate targetDate);
+    List<Contract> findContractsPendingPayment(@Param("targetDate") Instant targetDate);
+
+    @Query("SELECT c FROM Contract c JOIN FETCH c.tutor t JOIN FETCH t.user u " +
+            "WHERE c.status = 'ACTIVE' " +
+            "  AND c.isFeePaid = false " +
+            "  AND c.feePaymentDeadline IN :targetDates")
+    List<Contract> findContractsBySpecificDeadlines(@Param("targetDates") List<Instant> targetDates);
+
+    Optional<Contract> findByContractNumber(String contractNumber);
+
+    @Modifying
+    @Transactional
+    @Query("UPDATE Contract c SET c.guestReviewToken = :token WHERE c.id = :contractId")
+    void updateGuestReviewToken(@Param("contractId") Long contractId, @Param("token") String token);
+
+    // Tìm các hợp đồng đang dạy (ACTIVE) nhưng đã vượt quá ngày kết thúc dự kiến
+    @EntityGraph(attributePaths = {
+            "classRequest",
+            "classRequest.user",
+            "tutor",
+            "tutor.user"
+    })
+    @Query("SELECT c FROM Contract c WHERE c.status = :status AND c.endDate <= :today")
+    List<Contract> findExpiredActiveContracts(
+            @Param("status") ContractStatus status,
+            @Param("today") Instant today
+    );
+
+    @Query("SELECT c FROM Contract c " +
+            "JOIN FETCH c.tutor t " +
+            "JOIN FETCH t.user u " +
+            "WHERE c.isFeePaid = false " +
+            "AND c.feePaymentDeadline < :today " +
+            "AND c.status NOT IN ('CANCELLED', 'DRAFT') " +
+            "ORDER BY c.feePaymentDeadline ASC")
+    List<Contract> findTop5OverdueContracts(@Param("today") Instant today, Pageable pageable);
 }

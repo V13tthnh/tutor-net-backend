@@ -4,6 +4,7 @@ import com.tutornet.tutor_net.dto.response.ClassRequestDropdownResponse;
 import com.tutornet.tutor_net.entity.ClassRequest;
 import com.tutornet.tutor_net.entity.Subject;
 import com.tutornet.tutor_net.enums.ClassRequestStatus;
+import com.tutornet.tutor_net.repository.projection.CategoryCountProjection;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -11,6 +12,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
@@ -124,4 +126,31 @@ public interface ClassRequestRepository extends JpaRepository<ClassRequest, Long
     );
 
     Page<ClassRequest> findByUserId(Long userId, Pageable pageable);
+
+    // thống kê dashboard
+
+    @Query("SELECT COUNT(c) FROM ClassRequest c WHERE c.createdAt BETWEEN :fromDate AND :toDate")
+    long countRequestsBetweenDates(@Param("fromDate") Instant fromDate, @Param("toDate") Instant toDate);
+
+    @Query("SELECT COUNT(c) FROM ClassRequest c WHERE c.status = 'MATCHED' AND c.createdAt BETWEEN :fromDate AND :toDate")
+    long countMatchedRequestsBetweenDates(@Param("fromDate") Instant fromDate, @Param("toDate") Instant toDate);
+
+    @Query(value = """
+        SELECT c.status AS categoryName, COUNT(c.id) AS count
+        FROM class_requests c
+        WHERE c.created_at BETWEEN :fromDate AND :toDate
+        GROUP BY c.status
+        """, nativeQuery = true)
+    List<CategoryCountProjection> getClassStatusChart(@Param("fromDate") Instant fromDate, @Param("toDate") Instant toDate);
+
+    @Query(value = """
+        SELECT s.name AS categoryName, COUNT(c.id) AS count
+        FROM class_requests c
+        JOIN subjects s ON c.subject_id = s.id
+        WHERE c.created_at BETWEEN :fromDate AND :toDate
+        GROUP BY s.name
+        ORDER BY count DESC
+        LIMIT 5
+        """, nativeQuery = true)
+    List<CategoryCountProjection> getTopSubjectsChart(@Param("fromDate") Instant fromDate, @Param("toDate") Instant toDate);
 }

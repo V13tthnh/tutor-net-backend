@@ -7,7 +7,7 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 @Entity
 @Table(name = "class_applications", uniqueConstraints = {
@@ -34,6 +34,7 @@ public class ClassApplication {
     @Enumerated(EnumType.STRING)
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     @Column(name = "status", nullable = false, columnDefinition = "application_status")
+    @Builder.Default
     private ApplicationStatus status = ApplicationStatus.PENDING;
 
     @Column(name = "message", columnDefinition = "TEXT")
@@ -41,5 +42,5 @@ public class ClassApplication {
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
-    private LocalDateTime createdAt;
+    private Instant createdAt;
 }

@@ -1,6 +1,6 @@
 package com.tutornet.tutor_net.dto.response;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 public record ReviewResponse(
         Long id,
@@ -10,5 +10,5 @@ public record ReviewResponse(
         Integer rating,
         String comment,
         Boolean isPublic,
-        LocalDateTime createdAt
+        Instant createdAt
 ) {}

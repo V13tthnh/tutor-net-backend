@@ -22,6 +22,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.UUID;
 
@@ -105,7 +106,7 @@ public class TutorInvitationServiceImpl implements TutorInvitationService {
                 .status(ContractStatus.PENDING_SIGNATURE)
                 .freeTrialCount(1)
                 .isFeePaid(false)
-                .effectiveDate(LocalDate.now())
+                .effectiveDate(Instant.now())
                 .build();
         contract = contractRepository.save(contract);
 

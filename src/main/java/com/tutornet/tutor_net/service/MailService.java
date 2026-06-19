@@ -1,5 +1,8 @@
 package com.tutornet.tutor_net.service;
 
+import java.math.BigDecimal;
+import java.time.Instant;
+
 public interface MailService {
     void sendVerificationEmail(String toEmail, String token);
     void sendPasswordResetEmail(String toEmail, String fullName, String token);
@@ -34,5 +37,6 @@ public interface MailService {
     void sendContractAttachmentEmail(String toEmail, String recipientName, String contractNumber, byte[] pdfBytes);
     void sendTutorApplicationAcceptedEmail(String toEmail, String tutorName, String studentName);
     void sendApplicationRejectedByAdminEmail(String toEmail, String tutorName, String contactName);
-
+    void sendPaymentReminderEmail(String to, String name, String contractNumber, BigDecimal amount, Instant deadline);
+    void sendReviewRequestEmail(String toEmail, String studentName, String tutorName, String reviewLink);
 }
