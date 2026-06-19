@@ -85,4 +85,16 @@ public class AdminContractController {
         List<AdminContractResponse> list = contractService.getContractsForExport(status, isFeePaid);
         return ResponseEntity.ok(ApiResponse.ok("Xuất dữ liệu đối soát kế toán thành công", list));
     }
+
+    /**
+     * Kết thúc hợp đồng thủ công và kích hoạt luồng gửi email xin đánh giá
+     */
+    @PostMapping("/{contractId}/complete")
+    @PreAuthorize("hasAuthority('tutor:manage')")
+    public ResponseEntity<ApiResponse<Void>> completeContract(
+            @PathVariable Long contractId
+    ) {
+        contractService.completeContract(contractId);
+        return ResponseEntity.ok(ApiResponse.ok("Hoàn thành hợp đồng và kích hoạt yêu cầu đánh giá thành công.", null));
+    }
 }

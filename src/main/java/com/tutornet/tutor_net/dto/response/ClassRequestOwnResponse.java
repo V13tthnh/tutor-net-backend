@@ -5,7 +5,7 @@ import com.tutornet.tutor_net.enums.TeachingMode;
 import lombok.Builder;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 @Builder
 public record ClassRequestOwnResponse(
@@ -18,6 +18,6 @@ public record ClassRequestOwnResponse(
         TeachingMode teachingMode,
         Integer sessionsPerWeek,
         ClassRequestStatus status,
-        LocalDateTime createdAt,
+        Instant createdAt,
         int applicantsCount
 ) {}

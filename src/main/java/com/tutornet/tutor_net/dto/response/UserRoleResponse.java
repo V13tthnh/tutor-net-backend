@@ -9,18 +9,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-/**
- * Tập hợp các DTO response liên quan đến User + Role.
- *
- * Phân cấp sử dụng:
- * ┌──────────────────────────────────────────────────────────┐
- * │  UserSummaryResponse  — danh sách users (ít field)       │
- * │  UserDetailResponse   — chi tiết 1 user (đầy đủ field)   │
- * │  RoleSummary          — thông tin role gọn (id/name/slug) │
- * │  UserRoleDetail       — assignment role kèm metadata     │
- * │  PageResponse<T>      — wrapper phân trang               │
- * └──────────────────────────────────────────────────────────┘
- */
 public final class UserRoleResponse {
 
     // Permission tóm tắt (nhúng trong RoleResponse)

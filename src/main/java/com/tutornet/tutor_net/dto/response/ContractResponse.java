@@ -4,8 +4,7 @@ import com.tutornet.tutor_net.enums.ContractStatus;
 import lombok.Builder;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 @Builder
 public record ContractResponse(
@@ -24,12 +23,13 @@ public record ContractResponse(
 
         // --- Tài chính & Thời gian ---
         BigDecimal introductionFee,
-        LocalDate effectiveDate,
-        LocalDate feePaymentDeadline,
+        Instant effectiveDate,
+        Instant feePaymentDeadline,
+        Instant endDate,
         Integer freeTrialCount,
 
         // --- Trạng thái & File ---
         ContractStatus status,
         String contractFileUrl,
-        LocalDateTime createdAt
+        Instant createdAt
 ) {}

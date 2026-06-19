@@ -3,7 +3,7 @@ package com.tutornet.tutor_net.dto.response;
 import com.tutornet.tutor_net.enums.ClassRequestStatus;
 import com.tutornet.tutor_net.enums.TeachingMode;
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 public record ClassRequestResponse(
         Long id,
@@ -29,8 +29,8 @@ public record ClassRequestResponse(
         ClassRequestStatus status,
         String rejectionReason,     // NULL nếu chưa bị từ chối — Admin điền khi REJECTED
         Integer totalApplicants, // Số lượng gia sư đã gửi yêu cầu nhận lớp này (Đáp ứng đúng logic đếm)
-        LocalDateTime createdAt,
-        LocalDateTime updatedAt,
+        Instant createdAt,
+        Instant updatedAt,
         boolean hasAccount
 ) {}
 

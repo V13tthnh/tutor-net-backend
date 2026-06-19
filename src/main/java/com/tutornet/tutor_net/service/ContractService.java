@@ -34,4 +34,6 @@ public interface ContractService {
     void resolveContractDispute(Long contractId, ContractDisputeRequest request, Long adminId);
 
     List<AdminContractResponse> getContractsForExport(ContractStatus status, Boolean isFeePaid);
+
+    void completeContract(Long contractId);
 }

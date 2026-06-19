@@ -2,7 +2,7 @@ package com.tutornet.tutor_net.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
-import java.time.LocalDateTime;
+import java.time.Instant ;
 
 @Entity
 @Table(name = "password_reset_tokens")
@@ -21,21 +21,21 @@ public class PasswordResetToken {
     private String token;
 
     @Column(name = "expires_at", nullable = false)
-    private LocalDateTime expiresAt;
+    private Instant  expiresAt;
 
     @Column(nullable = false)
     @Builder.Default
     private Boolean used = false;
 
     @Column(name = "created_at", updatable = false)
-    private LocalDateTime createdAt;
+    private Instant  createdAt;
 
     @PrePersist
     void onCreate() {
-        this.createdAt = LocalDateTime.now();
+        this.createdAt = Instant .now();
     }
 
     public boolean isExpired() {
-        return LocalDateTime.now().isAfter(this.expiresAt);
+        return Instant .now().isAfter(this.expiresAt);
     }
 }

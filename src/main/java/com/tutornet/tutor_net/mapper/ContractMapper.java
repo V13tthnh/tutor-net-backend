@@ -39,6 +39,7 @@ public class ContractMapper {
                 .introductionFee(entity.getIntroductionFee())
                 .effectiveDate(entity.getEffectiveDate())
                 .feePaymentDeadline(entity.getFeePaymentDeadline())
+                .endDate(entity.getEndDate())
                 .freeTrialCount(entity.getFreeTrialCount())
 
                 .status(entity.getStatus())
@@ -76,7 +77,8 @@ public class ContractMapper {
                 .contactPhone(entity.getClassRequest() != null ? entity.getClassRequest().getContactPhone() : null)
 
                 .introductionFee(entity.getIntroductionFee())
-                .isFeePaid(entity.getIsFeePaid()) // Lấy đúng getter của Lombok sinh ra
+                .endDate(entity.getEndDate())
+                .isFeePaid(entity.getIsFeePaid())
                 .paidAt(entity.getPaidAt())
                 .feePaymentDeadline(entity.getFeePaymentDeadline())
                 .status(entity.getStatus())

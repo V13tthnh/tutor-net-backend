@@ -9,8 +9,8 @@ import org.hibernate.annotations.UpdateTimestamp;
 import org.hibernate.type.SqlTypes;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
+import java.time.Instant;
+import java.time.Instant ;
 
 @Entity
 @Table(name = "contracts")
@@ -41,17 +41,17 @@ public class Contract {
     private BigDecimal introductionFee;
 
     @Column(name = "fee_payment_deadline")
-    private LocalDate feePaymentDeadline; // Hạn chót đóng phí (Ngày giao lớp + 35 ngày)
+    private Instant feePaymentDeadline; // Hạn chót đóng phí (Ngày giao lớp + 35 ngày)
 
     @Builder.Default
     @Column(name = "is_fee_paid", nullable = false)
     private Boolean isFeePaid = false;
 
     @Column(name = "paid_at")
-    private LocalDateTime paidAt; // Thời điểm thanh toán thành công (Webhook trả về)
+    private Instant  paidAt; // Thời điểm thanh toán thành công (Webhook trả về)
 
     @Column(name = "effective_date", nullable = false)
-    private LocalDate effectiveDate; // Ngày bắt đầu tính phí/dạy thử
+    private Instant effectiveDate; // Ngày bắt đầu tính phí/dạy thử
 
     @Builder.Default
     @Enumerated(EnumType.STRING)
@@ -69,13 +69,19 @@ public class Contract {
     private String ipAddress;
 
     @Column(name = "signed_at")
-    private LocalDateTime signedAt;
+    private Instant  signedAt;
+
+    @Column(name = "end_date")
+    private Instant endDate;
+
+    @Column(name = "guest_review_token", unique = true)
+    private String guestReviewToken;
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
-    private LocalDateTime createdAt;
+    private Instant  createdAt;
 
     @UpdateTimestamp
     @Column(name = "updated_at", nullable = false)
-    private LocalDateTime updatedAt;
+    private Instant  updatedAt;
 }

@@ -6,7 +6,9 @@ import com.tutornet.tutor_net.dto.response.AdminContractResponse;
 import com.tutornet.tutor_net.dto.response.ContractResponse;
 import com.tutornet.tutor_net.entity.ClassRequest;
 import com.tutornet.tutor_net.entity.Contract;
+import com.tutornet.tutor_net.entity.User;
 import com.tutornet.tutor_net.enums.ContractStatus;
+import com.tutornet.tutor_net.event.ContractCompletedEvent;
 import com.tutornet.tutor_net.event.ContractSignedEvent;
 import com.tutornet.tutor_net.exception.BadRequestException;
 import com.tutornet.tutor_net.exception.BusinessException;
@@ -32,8 +34,10 @@ import java.math.BigDecimal;
 import java.security.MessageDigest;
 import java.text.NumberFormat;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
+import java.time.Instant;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.Locale;
@@ -101,8 +105,9 @@ public class ContractServiceImpl implements ContractService {
         BigDecimal introductionFee = estimatedMonthlyTuition.multiply(BigDecimal.valueOf(0.40));
 
         // 5. Cấu hình các mốc thời gian dựa theo đúng văn bản cam kết pháp lý
-        LocalDate effectiveDate = LocalDate.now(); // Ngày bàn giao lớp học
-        LocalDate feePaymentDeadline = effectiveDate.plusDays(35); // Hạn đóng tiền muộn nhất 35 ngày
+        Instant effectiveDate = Instant.now(); // Ngày bàn giao lớp học
+        Instant feePaymentDeadline = effectiveDate.plus(35, ChronoUnit.DAYS); // Hạn đóng tiền muộn nhất 35 ngày
+        Instant endDate = effectiveDate.plus(30, ChronoUnit.DAYS); // Theo điều 3.3 trong hợp đồng: mốc 100% phí là > 30 ngày
 
         // 6. Xây dựng thực thể Contract
         Contract contract = Contract.builder()
@@ -112,6 +117,7 @@ public class ContractServiceImpl implements ContractService {
                 .introductionFee(introductionFee)
                 .effectiveDate(effectiveDate)
                 .feePaymentDeadline(feePaymentDeadline)
+                .endDate(endDate)
                 .status(ContractStatus.DRAFT) // Hợp đồng ở trạng thái sơ thảo, chờ gia sư in và ký tay
                 .freeTrialCount(1) // Mặc định tuân thủ chính sách dạy thử 1 buổi đầu miễn phí
                 .build();
@@ -143,7 +149,7 @@ public class ContractServiceImpl implements ContractService {
         }
 
         // ── Bước 1: Khởi tạo IP + timestamp ─────────────────────────
-        LocalDateTime signedAt = LocalDateTime.now();
+        Instant signedAt = Instant.now();
 
         // ── Bước 2: Thymeleaf Context (hash tạm để render lần 1) ────
         Context ctx = buildThymeleafContext(contract, ipAddress, signedAt, "ĐANG XỬ LÝ...");
@@ -165,12 +171,13 @@ public class ContractServiceImpl implements ContractService {
         }
 
         // ── Bước 5: Cập nhật Contract → ACTIVE ──────────────────────
-        LocalDate today = LocalDate.now();
+        Instant today = Instant.now();
         contract.setIpAddress(ipAddress);
         contract.setSignedAt(signedAt);
         contract.setContractFileUrl(fileUrl);
         contract.setEffectiveDate(today);
-        contract.setFeePaymentDeadline(today.plusDays(35));
+        contract.setFeePaymentDeadline(today.plus(35, ChronoUnit.DAYS));
+        contract.setEndDate(today.plus(30, ChronoUnit.DAYS));
         contract.setStatus(ContractStatus.ACTIVE);
 
         contractRepository.save(contract);
@@ -214,7 +221,7 @@ public class ContractServiceImpl implements ContractService {
 
         // Cập nhật trạng thái dòng tiền
         contract.setIsFeePaid(true);
-        contract.setPaidAt(LocalDateTime.now());
+        contract.setPaidAt(Instant.now());
 
         // Nếu hợp đồng đã được gia sư ký trước đó rồi, tự động kích hoạt trạng thái ACTIVE luôn
         if (contract.getStatus() == ContractStatus.PENDING_SIGNATURE && contract.getSignedAt() != null) {
@@ -259,22 +266,60 @@ public class ContractServiceImpl implements ContractService {
         return contracts.stream().map(contractMapper::toAdminResponse).collect(Collectors.toList());
     }
 
+    @Override
+    @Transactional
+    public void completeContract(Long contractId) {
+        Contract contract = contractRepository.findById(contractId)
+                .orElseThrow(() -> new ResourceNotFoundException("Hợp đồng không tồn tại"));
+
+        if (contract.getStatus() == ContractStatus.COMPLETED) {
+            return;
+        }
+
+        if (contract.getStatus() != ContractStatus.ACTIVE) {
+            throw new BusinessException("Chỉ có thể hoàn thành hợp đồng đang ở trạng thái ACTIVE");
+        }
+
+        contract.setStatus(ContractStatus.COMPLETED);
+        contractRepository.save(contract);
+
+        User studentUser = contract.getClassRequest().getUser();
+
+        Long studentUserId = studentUser != null ? studentUser.getId() : null;
+        String studentEmail = studentUser != null ? studentUser.getEmail() : contract.getClassRequest().getContactEmail();
+        String studentName = studentUser != null ? studentUser.getFullName() : contract.getClassRequest().getContactName();
+        String tutorName = contract.getTutor().getUser().getFullName();
+
+        eventPublisher.publishEvent(new ContractCompletedEvent(
+                contract.getId(),
+                contract.getContractNumber(),
+                studentUserId,
+                studentEmail,
+                studentName,
+                tutorName
+        ));
+    }
+
     // ---------------------------------------------------------------
     // Private helpers
     // ---------------------------------------------------------------
 
     private Context buildThymeleafContext(Contract contract,
                                           String ipAddress,
-                                          LocalDateTime signedAt,
+                                          Instant signedAt,
                                           String contractHash) {
         ClassRequest cr = contract.getClassRequest();
         Context ctx = new Context();
 
         // Header
-        ctx.setVariable("contractDate",
-                "Ngày " + signedAt.getDayOfMonth()
-                        + " tháng " + signedAt.getMonthValue()
-                        + " năm " + signedAt.getYear());
+        DateTimeFormatter formatter =
+                DateTimeFormatter.ofPattern("'Ngày' d 'tháng' M 'năm' yyyy");
+
+        ctx.setVariable(
+                "contractDate",
+                signedAt.atZone(ZoneId.of("Asia/Ho_Chi_Minh"))
+                        .format(formatter)
+        );
 
         // Bên B – Gia sư
         var tutorUser = contract.getTutor().getUser();
@@ -308,7 +353,11 @@ public class ContractServiceImpl implements ContractService {
 
         // Evidence block
         ctx.setVariable("ipAddress",     ipAddress);
-        ctx.setVariable("signedAt",      signedAt.format(DATETIME_FORMAT));
+        ctx.setVariable(
+                "signedAt",
+                signedAt.atZone(ZoneId.of("Asia/Ho_Chi_Minh"))
+                        .format(DATETIME_FORMAT)
+        );
         ctx.setVariable("contractHash",  contractHash);
 
         return ctx;

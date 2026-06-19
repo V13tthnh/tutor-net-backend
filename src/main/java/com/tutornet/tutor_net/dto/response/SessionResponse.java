@@ -3,7 +3,7 @@ package com.tutornet.tutor_net.dto.response;
 import com.tutornet.tutor_net.enums.SessionStatus;
 import com.tutornet.tutor_net.enums.TeachingMode;
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 public record SessionResponse(
         Long id,
@@ -11,7 +11,7 @@ public record SessionResponse(
         String contractNumber,
         Long subjectId,
         String subjectName,
-        LocalDateTime scheduledAt,
+        Instant scheduledAt,
         Integer durationMinutes,
         TeachingMode teachingMode,
         String meetingUrl,
