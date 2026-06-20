@@ -108,7 +108,7 @@ public class ClassApplicationServiceImpl implements ClassApplicationService {
         TutorProfile tutor = tutorProfileRepo.findByUserId(tutorUserId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy hồ sơ Gia sư của bạn"));
 
-        ClassRequest classRequest = classRequestRepo.findById(classRequestId)
+        ClassRequest classRequest = classRequestRepo.findByIdWithUser(classRequestId)
                 .orElseThrow(() -> new ResourceNotFoundException("Lớp học không tồn tại"));
 
         if (classRequest.getUser() != null && classRequest.getUser().getId().equals(tutorUserId)) {

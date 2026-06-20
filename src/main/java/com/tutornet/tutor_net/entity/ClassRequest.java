@@ -2,6 +2,8 @@ package com.tutornet.tutor_net.entity;
 
 import com.tutornet.tutor_net.enums.ClassRequestStatus;
 import com.tutornet.tutor_net.enums.TeachingMode;
+import com.tutornet.tutor_net.visitor.FeeElement;
+import com.tutornet.tutor_net.visitor.FeeVisitor;
 import jakarta.persistence.*;
 
 import java.time.Instant;
@@ -24,7 +26,7 @@ import java.util.Random;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class ClassRequest {
+public class ClassRequest implements FeeElement {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -135,4 +137,9 @@ public class ClassRequest {
     @UpdateTimestamp
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
+
+    @Override
+    public void accept(FeeVisitor visitor){
+        visitor.visit(this);
+    }
 }

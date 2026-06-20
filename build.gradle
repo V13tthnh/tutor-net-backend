@@ -50,6 +50,9 @@ dependencies {
     implementation 'com.openhtmltopdf:openhtmltopdf-pdfbox:1.0.10'
     implementation 'com.openhtmltopdf:openhtmltopdf-slf4j:1.0.10'
 
+    // ===== EXCEL/CSV =====
+    implementation 'org.apache.poi:poi-ooxml:5.2.3'
+
     // ===== DEV TOOLS =====
     developmentOnly 'org.springframework.boot:spring-boot-devtools'
 

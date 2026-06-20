@@ -2,6 +2,8 @@ package com.tutornet.tutor_net.service;
 
 import com.tutornet.tutor_net.entity.User;
 
+import java.time.Instant;
+
 public interface JwtService {
 
     String generateAccessToken(User user);
@@ -12,6 +14,9 @@ public interface JwtService {
 
     boolean isValid(String token);
 
-    boolean isValidAccessToken(String token);   // ← thêm
+    boolean isValidAccessToken(String token);
+
     boolean isValidRefreshToken(String token);
+
+    Instant getExpirationFromToken(String token);;
 }

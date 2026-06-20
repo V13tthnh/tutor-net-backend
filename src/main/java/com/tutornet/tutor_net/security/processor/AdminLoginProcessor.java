@@ -4,7 +4,9 @@ import com.tutornet.tutor_net.entity.User;
 import com.tutornet.tutor_net.repository.UserRepository;
 import com.tutornet.tutor_net.service.JwtService;
 import com.tutornet.tutor_net.service.AbstractLoginProcessor;
+import com.tutornet.tutor_net.service.RateLimiterService;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -12,8 +14,9 @@ public class AdminLoginProcessor extends AbstractLoginProcessor {
 
     public AdminLoginProcessor(AuthenticationManager authenticationManager,
                                UserRepository userRepository,
-                               JwtService jwtService) {
-        super(authenticationManager, userRepository, jwtService);
+                               JwtService jwtService,
+                               RateLimiterService rateLimiterService) {
+        super(authenticationManager, userRepository, jwtService, rateLimiterService);
     }
 
     @Override
@@ -23,7 +26,7 @@ public class AdminLoginProcessor extends AbstractLoginProcessor {
                 .anyMatch(ur -> ur.getRole().getIsSystem());
 
         if (!hasAdminAccess) {
-            throw new RuntimeException("Truy cập bị từ chối. Bạn không có quyền quản trị.");
+            throw new BadCredentialsException("Email hoặc mật khẩu không chính xác");
         }
     }
 }

@@ -10,8 +10,8 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
-import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.List;
 
 @Component
@@ -26,29 +26,30 @@ public class  PaymentReminderJob {
      // "0 * * * * *" -> Chạy lặp lại mỗi 1 phút để test
      // "0 0 8 * * *" -> Khi nào xong, bạn đổi thành chuỗi này để chạy 1 lần vào 8h sáng mỗi ngày
      */
-    @Scheduled(cron = "0 0 8 * * *")
+    @Scheduled(cron = "0 * * * * *")
     @Transactional(readOnly = true)
     public void autoRemindPaymentJob() {
-        log.info("--- [Cron Job] Đang thực thi rà soát công nợ hợp đồng gia sư ---");
+        log.info("--- [Cron Job] Đang thực thi rà soát công nợ ---");
 
-        // Tính toán các mốc thời gian chính xác muốn gửi mail nhắc nợ
-        List<Instant> targetDates = List.of(
-                Instant.now().plus(7, ChronoUnit.DAYS),  // Hạn chót còn đúng 7 ngày
-                Instant.now().plus(3, ChronoUnit.DAYS),  // Hạn chót còn đúng 3 ngày
-                Instant.now().plus(1, ChronoUnit.DAYS)   // Hạn chót còn đúng 1 ngày
-        );
+        // Các mốc ngày cần nhắc (tính theo ngày, không theo giờ giây)
+        List<Integer> reminderDays = List.of(7, 3, 1);
 
-        // Để test dễ dàng dính mọi bản ghi, ta truyền ngày quét nới rộng ra (hạn chót <= hôm nay + 40 ngày)
-        LocalDate scanDeadline = LocalDate.now().plusDays(35);
+        List<Contract> unpaidContracts = new ArrayList<>();
 
-        // Lấy danh sách hợp đồng ACTIVE và chưa đóng tiền phí dịch vụ
-        // List<Contract> unpaidContracts = contractRepository.findContractsPendingPayment(scanDeadline);
+        for (int days : reminderDays) {
+            // Lấy đầu ngày và cuối ngày của mốc đó (UTC)
+            Instant startOfDay = Instant.now()
+                    .plus(days, ChronoUnit.DAYS)
+                    .truncatedTo(ChronoUnit.DAYS);
+            Instant endOfDay = startOfDay.plus(1, ChronoUnit.DAYS).minusMillis(1);
 
-        // Chỉ lấy ra các hợp đồng có ngày hạn khớp khít với các ngày trong list trên
-        List<Contract> unpaidContracts = contractRepository.findContractsBySpecificDeadlines(targetDates);
+            unpaidContracts.addAll(
+                    contractRepository.findUnpaidContractsByDeadlineRange(startOfDay, endOfDay)
+            );
+        }
 
         if (unpaidContracts.isEmpty()) {
-            log.info("[Cron Job] Hoàn thành. Không phát hiện hợp đồng nào quá hạn hoặc nợ phí.");
+            log.info("[Cron Job] Không phát hiện hợp đồng nào cần nhắc.");
             return;
         }
 

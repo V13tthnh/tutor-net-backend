@@ -1,6 +1,7 @@
 package com.tutornet.tutor_net.repository;
 
 import com.tutornet.tutor_net.entity.Contract;
+import com.tutornet.tutor_net.entity.Transaction;
 import com.tutornet.tutor_net.enums.ContractStatus;
 import jakarta.transaction.Transactional;
 import org.springframework.data.domain.Page;
@@ -41,6 +42,18 @@ public interface ContractRepository extends JpaRepository<Contract, Long> {
             @Param("status") ContractStatus status,
             @Param("hasStatus") boolean hasStatus,
             Pageable pageable
+    );
+
+    @Query("""
+                SELECT c FROM Contract c
+                JOIN FETCH c.tutor t
+                JOIN FETCH t.user u
+                WHERE c.isFeePaid = false
+                AND c.feePaymentDeadline BETWEEN :start AND :end
+            """)
+    List<Contract> findUnpaidContractsByDeadlineRange(
+            @Param("start") Instant start,
+            @Param("end") Instant end
     );
 
     @Query("SELECT c FROM Contract c " +
@@ -91,6 +104,21 @@ public interface ContractRepository extends JpaRepository<Contract, Long> {
             "  AND c.isFeePaid = false " +
             "  AND c.feePaymentDeadline IN :targetDates")
     List<Contract> findContractsBySpecificDeadlines(@Param("targetDates") List<Instant> targetDates);
+
+    @Query(value = """
+    SELECT COUNT(*) FROM transactions t
+    WHERE t.status = :status
+      AND (CAST(:from AS TIMESTAMPTZ) IS NULL OR t.created_at >= CAST(:from AS TIMESTAMPTZ))
+      AND (CAST(:to   AS TIMESTAMPTZ) IS NULL OR t.created_at <= CAST(:to   AS TIMESTAMPTZ))
+    """, nativeQuery = true)
+    long countByStatusInRange(
+            @Param("status") String status,
+            @Param("from")   Instant from,
+            @Param("to")     Instant to
+    );
+
+
+    Optional<Contract> findFirstByContractNumber(String contractNumber);
 
     Optional<Contract> findByContractNumber(String contractNumber);
 
