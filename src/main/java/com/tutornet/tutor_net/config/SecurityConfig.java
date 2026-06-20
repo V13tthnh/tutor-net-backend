@@ -49,8 +49,9 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/reviews/tutor/**").permitAll()
                         .requestMatchers("/api/v1/reviews/guest-contract").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/reviews").permitAll()
-                        .requestMatchers("/webhook/vnpay_ipn").permitAll()
-                        .requestMatchers("/api/v1/payments/click-pay-email").permitAll()
+                        .requestMatchers("/api/v1/payments/webhook/vnpay_ipn").permitAll()
+                        .requestMatchers("/api/v1/payments/vnpay-return",
+                                "/api/v1/payments/click-pay-email").permitAll()
                         .requestMatchers("/error").permitAll()
                         .requestMatchers("/uploads/**").permitAll()
                         .requestMatchers("/ws/**").permitAll()

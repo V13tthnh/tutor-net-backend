@@ -14,41 +14,32 @@ import java.util.concurrent.ConcurrentHashMap;
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class RateLimiterServiceImpl implements RateLimiterService {
-    // Lưu thời gian hết hạn khóa của từng Key
+
     private final Map<String, Instant> blockedKeys = new ConcurrentHashMap<>();
-    // Lưu số lần thử thất bại của từng Key
     private final Map<String, Integer> attemptsCache = new ConcurrentHashMap<>();
 
-    /**
-     * Kiểm tra xem Key này có đang bị khóa không
-     */
+    @Override
     public boolean isBlocked(String key) {
-        if (blockedKeys.containsKey(key)) {
-            if (Instant.now().isBefore(blockedKeys.get(key))) {
-                return true; // Vẫn đang trong thời gian bị khóa
-            } else {
-                // Đã hết thời gian khóa -> Xóa khỏi danh sách chặn
-                blockedKeys.remove(key);
-                attemptsCache.remove(key);
-            }
+        Instant expiry = blockedKeys.get(key);
+        if (expiry == null) return false;
+        if (Instant.now().isAfter(expiry)) {
+            blockedKeys.remove(key);
+            attemptsCache.remove(key);
+            return false;
         }
-        return false;
+        return true;
     }
 
     /**
      * Ghi nhận 1 lần thất bại. Có thể tùy chỉnh số lần tối đa và thời gian phạt cho từng tính năng.
      */
+    @Override
     public void recordFailedAttempt(String key, int maxAttempts, int blockDurationMinutes) {
         int attempts = attemptsCache.getOrDefault(key, 0) + 1;
         if (attempts >= maxAttempts) {
-            // Vượt quá số lần cho phép -> Phạt khóa
-            blockedKeys.put(
-                    key,
-                    Instant.now().plus(Duration.ofMinutes(blockDurationMinutes))
-            );
+            blockedKeys.put(key, Instant.now().plus(Duration.ofMinutes(blockDurationMinutes)));
             attemptsCache.remove(key);
         } else {
-            // Chưa vượt quá -> Cập nhật số lần sai
             attemptsCache.put(key, attempts);
         }
     }
@@ -56,7 +47,9 @@ public class RateLimiterServiceImpl implements RateLimiterService {
     /**
      * Reset lại số lần sai khi thao tác thành công
      */
+    @Override
     public void resetAttempts(String key) {
         attemptsCache.remove(key);
+        blockedKeys.remove(key);
     }
 }

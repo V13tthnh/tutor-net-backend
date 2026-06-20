@@ -5,11 +5,11 @@ import com.tutornet.tutor_net.dto.response.AuthResponse;
 import com.tutornet.tutor_net.dto.response.UserResponse;
 import com.tutornet.tutor_net.entity.Permission;
 import com.tutornet.tutor_net.entity.User;
+import com.tutornet.tutor_net.exception.BusinessException;
 import com.tutornet.tutor_net.repository.UserRepository;
-import com.tutornet.tutor_net.security.CustomUserDetails;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
 
 import java.time.Instant;
 import java.util.List;
@@ -20,33 +20,56 @@ public abstract class AbstractLoginProcessor {
     protected final AuthenticationManager authenticationManager;
     protected final UserRepository userRepository;
     protected final JwtService jwtService;
+    protected final RateLimiterService rateLimiterService;
+
+    private static final int MAX_ATTEMPTS = 5;
+    private static final int BLOCK_MINUTES = 15;
 
     protected AbstractLoginProcessor(
             AuthenticationManager authenticationManager,
             UserRepository userRepository,
-            JwtService jwtService
+            JwtService jwtService,
+            RateLimiterService rateLimiterService
     ) {
         this.authenticationManager = authenticationManager;
         this.userRepository = userRepository;
         this.jwtService = jwtService;
+        this.rateLimiterService = rateLimiterService;
     }
+
 
     // TEMPLATE METHOD
     public final AuthResponse processLogin(AuthRequest.LoginRequest request) {
+        String rateLimitKey = "login:user:" + request.email();
 
-        // authenticate
-        User user = authenticate(
-                request.email(),
-                request.password()
-        );
+        // Kiểm tra block trước khi làm gì
+        if (rateLimiterService.isBlocked(rateLimitKey)) {
+            throw new BusinessException(
+                    "Đăng nhập sai quá nhiều lần. Vui lòng thử lại sau " + BLOCK_MINUTES + " phút."
+            );
+        }
 
-        // verify access
+        // Xác thực — bắt lỗi để ghi nhận thất bại
+        User user;
+        try {
+            user = authenticate(request.email(), request.password());
+        } catch (BadCredentialsException e) {
+            rateLimiterService.recordFailedAttempt(rateLimitKey, MAX_ATTEMPTS, BLOCK_MINUTES);
+            throw new BusinessException("Email hoặc mật khẩu không chính xác");
+        }
+
+        // Reset khi đăng nhập thành công
+        if (!rateLimiterService.isBlocked(rateLimitKey)) {
+            rateLimiterService.resetAttempts(rateLimitKey);
+        } else {
+            // Đúng mật khẩu nhưng vẫn đang trong thời gian phạt
+            throw new BusinessException(
+                    "Tài khoản tạm thời bị khóa. Vui lòng thử lại sau " + BLOCK_MINUTES + " phút."
+            );
+        }
+
         verifyAccess(user);
-
-        // update login stats
         updateLoginStats(user);
-
-        // generate response
         return generateAuthResponse(user);
     }
 
@@ -83,7 +106,6 @@ public abstract class AbstractLoginProcessor {
     private AuthResponse generateAuthResponse(User user) {
 
         String accessToken = jwtService.generateAccessToken(user);
-
         String refreshToken = jwtService.generateRefreshToken(user);
 
         List<String> roles = user.getUserRoles()

@@ -1,6 +1,7 @@
 package com.tutornet.tutor_net.security;
 
 import com.tutornet.tutor_net.entity.User;
+import com.tutornet.tutor_net.enums.UserStatus;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import org.springframework.security.core.GrantedAuthority;
@@ -46,12 +47,14 @@ public class CustomUserDetails implements UserDetails {
 
     @Override
     public boolean isAccountNonLocked() {
-        return !user.getStatus().name().equals("SUSPENDED");
+        return user.getStatus() != UserStatus.SUSPENDED;
     }
 
     @Override
     public boolean isCredentialsNonExpired() { return true; }
 
     @Override
-    public boolean isEnabled() { return true; }
+    public boolean isEnabled() {
+        return user.getStatus() == UserStatus.ACTIVE;
+    }
 }

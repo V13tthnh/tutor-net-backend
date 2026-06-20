@@ -5,10 +5,12 @@ import com.tutornet.tutor_net.dto.response.AdminContractResponse;
 import com.tutornet.tutor_net.dto.response.ApiResponse;
 import com.tutornet.tutor_net.dto.response.ContractResponse;
 import com.tutornet.tutor_net.enums.ContractStatus;
+import com.tutornet.tutor_net.export.excel.ContractExcelExporter;
+import com.tutornet.tutor_net.export.pdf.ContractPdfGenerator;
 import com.tutornet.tutor_net.security.CustomUserDetails;
 import com.tutornet.tutor_net.service.ContractService;
 import com.tutornet.tutor_net.util.PageableUtils;
-import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -18,6 +20,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.io.IOException;
 import java.util.List;
 
 @RestController
@@ -25,6 +28,9 @@ import java.util.List;
 @RequiredArgsConstructor
 public class AdminContractController {
     private final ContractService contractService;
+
+    private final ContractExcelExporter contractExcelExporter;
+    private final ContractPdfGenerator contractPdfGenerator;
 
     /**
      * Lấy danh sách hợp đồng cho Admin (Tìm kiếm + Lọc dòng tiền + Phân trang)
@@ -74,16 +80,33 @@ public class AdminContractController {
     }
 
     /**
-     * Lấy toàn bộ dữ liệu thô phục vụ nút bấm Export file Excel đối soát kế toán
+     * TẢI FILE EXCEL: Danh sách dữ liệu thô phục vụ đối soát kế toán
      */
-    @GetMapping("/export")
+    @GetMapping("/export-excel")
     @PreAuthorize("hasAuthority('contract:export')")
-    public ResponseEntity<ApiResponse<List<AdminContractResponse>>> getContractsForExport(
+    public void exportContractsToExcel(
             @RequestParam(required = false) ContractStatus status,
-            @RequestParam(required = false) Boolean isFeePaid
-    ) {
+            @RequestParam(required = false) Boolean isFeePaid,
+            HttpServletResponse response
+    ) throws IOException {
+        // Cấu hình HTTP Header
+        response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        response.setHeader("Content-Disposition", "attachment; filename=Contracts_" + System.currentTimeMillis() + ".xlsx");
+
+        // Lấy danh sách từ DB
         List<AdminContractResponse> list = contractService.getContractsForExport(status, isFeePaid);
-        return ResponseEntity.ok(ApiResponse.ok("Xuất dữ liệu đối soát kế toán thành công", list));
+
+        // Gọi Excel Template Method
+        contractExcelExporter.export(list, response);
+    }
+
+    @GetMapping("/{contractId}/download-pdf")
+    @PreAuthorize("hasAuthority('contract:read')")
+    public void downloadContractPdf(
+            @PathVariable Long contractId,
+            HttpServletResponse response
+    ) {
+        contractService.exportContractPdf(contractId, response);
     }
 
     /**

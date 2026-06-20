@@ -56,7 +56,7 @@ public class PaymentController {
     public ResponseEntity<Map<String, String>> vnpayIpn(HttpServletRequest request) {
         Map<String, String> response = new HashMap<>();
         try {
-            // ✅ Bug 1 fixed — đọc tên param gốc, encode VALUE (không encode tên)
+            // Bug 1 fixed — đọc tên param gốc, encode VALUE (không encode tên)
             Map<String, String> fields = new HashMap<>();
             for (Enumeration<String> params = request.getParameterNames(); params.hasMoreElements();) {
                 String fieldName  = params.nextElement();                    // tên gốc
@@ -173,4 +173,67 @@ public class PaymentController {
         }
         return sb.toString();
     }
+
+    /**
+     * VNPay sẽ chuyển hướng trình duyệt về đây, Backend tự update DB rồi đá sang Frontend
+     */
+    @GetMapping("/vnpay-return")
+    @Transactional
+    public void vnpayReturn(HttpServletRequest request, jakarta.servlet.http.HttpServletResponse response) throws java.io.IOException {
+        String frontendUrl = "http://localhost:3000/account/contracts?payment=failed";
+
+        try {
+            Map<String, String> fields = new HashMap<>();
+            for (Enumeration<String> params = request.getParameterNames(); params.hasMoreElements();) {
+                String fieldName = params.nextElement();
+                String fieldValue = request.getParameter(fieldName);
+                if (fieldValue != null && !fieldValue.isEmpty()) {
+                    fields.put(fieldName, fieldValue);
+                }
+            }
+
+            String vnpSecureHash = fields.remove("vnp_SecureHash");
+            fields.remove("vnp_SecureHashType");
+
+            String signValue = vnPayConfig.hmacSHA512(vnPayConfig.secretKey, hashAllFields(fields));
+
+            // Chỉ cần chữ ký hợp lệ là ta có thể truy xuất được giao dịch
+            if (signValue.equals(vnpSecureHash)) {
+                String transactionCode = fields.get("vnp_TxnRef");
+                Transaction txn = transactionRepository.findByTransactionCode(transactionCode).orElse(null);
+
+                if (txn != null) {
+                    // Nếu giao dịch thành công (Mã 00)
+                    if ("00".equals(fields.get("vnp_ResponseCode"))) {
+
+                        // Cập nhật DB tự động
+                        if (txn.getStatus() == TransactionStatus.PENDING) {
+                            txn.setStatus(TransactionStatus.SUCCESS);
+                            txn.setPaidAt(Instant.now());
+                            txn.setGatewayReference(fields.get("vnp_TransactionNo"));
+                            transactionRepository.save(txn);
+
+                            Contract contract = txn.getContract();
+                            contract.setIsFeePaid(true);
+                            contract.setPaidAt(Instant.now());
+                            contractRepository.save(contract);
+
+                            log.info("Cập nhật thành công từ Return URL cho TXN: {}", transactionCode);
+                        }
+
+                        // Gắn thêm mã hợp đồng vào URL để Frontend hiển thị đích danh
+                        frontendUrl = "http://localhost:3000/payment-result?payment=success&contractCode=" + txn.getContract().getContractNumber();
+                    } else {
+                        // Nếu user bấm hủy thanh toán hoặc thẻ bị lỗi (Mã khác 00)
+                        frontendUrl = "http://localhost:3000/payment-result?payment=failed&contractCode=" + txn.getContract().getContractNumber();
+                    }
+                }
+            }
+        } catch (Exception e) {
+            log.error("Lỗi khi xử lý Return URL từ VNPay: ", e);
+        }
+
+        response.sendRedirect(frontendUrl);
+    }
+
 }

@@ -6,6 +6,7 @@ import com.tutornet.tutor_net.dto.response.AdminContractResponse;
 import com.tutornet.tutor_net.dto.response.ContractResponse;
 import com.tutornet.tutor_net.enums.ContractStatus;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
@@ -36,4 +37,6 @@ public interface ContractService {
     List<AdminContractResponse> getContractsForExport(ContractStatus status, Boolean isFeePaid);
 
     void completeContract(Long contractId);
+
+    void exportContractPdf(Long contractId, HttpServletResponse response);
 }

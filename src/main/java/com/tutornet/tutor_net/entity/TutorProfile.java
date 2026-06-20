@@ -4,6 +4,8 @@ import com.tutornet.tutor_net.converter.TeachingModeArrayConverter;
 import com.tutornet.tutor_net.enums.EduLevel;
 import com.tutornet.tutor_net.enums.TeachingMode;
 import com.tutornet.tutor_net.enums.TutorStatus;
+import com.tutornet.tutor_net.visitor.FeeElement;
+import com.tutornet.tutor_net.visitor.FeeVisitor;
 import jakarta.persistence.*;
 import jakarta.persistence.CascadeType;
 import lombok.*;
@@ -22,7 +24,7 @@ import java.util.Set;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class TutorProfile {
+public class TutorProfile implements FeeElement {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -132,4 +134,9 @@ public class TutorProfile {
     @UpdateTimestamp
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
+
+    @Override
+    public void accept(FeeVisitor visitor) {
+        visitor.visit(this);
+    }
 }

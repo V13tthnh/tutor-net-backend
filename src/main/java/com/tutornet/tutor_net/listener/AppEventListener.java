@@ -1,12 +1,12 @@
 package com.tutornet.tutor_net.listener;
 
-import com.tutornet.tutor_net.entity.Contract;
+import com.tutornet.tutor_net.mail.payload.*;
 import com.tutornet.tutor_net.entity.User;
 import com.tutornet.tutor_net.event.*;
+import com.tutornet.tutor_net.mail.senders.*;
 import com.tutornet.tutor_net.repository.ContractRepository;
 import com.tutornet.tutor_net.repository.UserRepository;
 import com.tutornet.tutor_net.service.ContractService;
-import com.tutornet.tutor_net.service.MailService;
 import com.tutornet.tutor_net.service.NotificationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -22,33 +22,46 @@ import java.util.List;
 @Slf4j
 public class AppEventListener {
 
-    private final MailService mailService;
     private final NotificationService notificationService;
     private final UserRepository userRepository;
     private final ContractService contractService;
     private final ContractRepository contractRepository;
+
+    private final VerificationEmailSender verificationEmailSender;
+    private final TutorApprovedEmailSender tutorApprovedEmailSender;
+    private final TutorRejectedEmailSender tutorRejectedEmailSender;
+    private final ReviewRequestEmailSender reviewRequestEmailSender;
+    private final ContractAttachmentEmailSender contractAttachmentEmailSender;
+    private final TutorAppliedEmailSender tutorAppliedEmailSender;
+    private final PasswordResetEmailSender passwordResetEmailSender;
+    private final TutorInvitedEmailSender tutorInvitedEmailSender;
+    private final TutorAcceptedInvitationEmailSender tutorAcceptedInvitationEmailSender;
+    private final TutorApplicationAcceptedEmailSender tutorApplicationAcceptedEmailSender;
+    private final ApplicationRejectedByAdminEmailSender applicationRejectedByAdminEmailSender;
 
     // ── Auth events ──
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void onUserRegistered(UserRegisteredEvent event) {
         log.info("Gửi mail xác thực tới {}", event.email());
-        mailService.sendVerificationEmail(event.email(), event.verificationToken());
+        verificationEmailSender.execute(event.email(), new VerificationPayload(event.verificationToken()));
     }
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void onPasswordResetRequested(PasswordResetRequestedEvent event) {
         log.info("Gửi mail reset password tới {}", event.email());
-        mailService.sendPasswordResetEmail(event.email(), event.fullName(), event.resetToken());
+        PasswordResetPayload payload = new PasswordResetPayload(event.fullName(), event.resetToken());
+        passwordResetEmailSender.execute(event.email(), payload);
     }
 
     // ── Tutor review events ──
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void onTutorReviewed(TutorReviewedEvent event) {
+        TutorReviewMailPayload payload = new TutorReviewMailPayload(event.tutorFullName(), event.rejectionReason());
         switch (event.newStatus()) {
             case APPROVED -> {
-                mailService.sendTutorApprovedEmail(event.tutorEmail(), event.tutorFullName());
+                tutorApprovedEmailSender.execute(event.tutorEmail(), payload);
                 notificationService.send(
                         event.tutorUser(),
                         "tutor_approved",
@@ -60,7 +73,7 @@ public class AppEventListener {
                 );
             }
             case REJECTED -> {
-                mailService.sendTutorRejectedEmail(event.tutorEmail(), event.tutorFullName(), event.rejectionReason());
+                tutorRejectedEmailSender.execute(event.tutorEmail(), payload);
                 notificationService.send(
                         event.tutorUser(),
                         "tutor_rejected",
@@ -96,9 +109,6 @@ public class AppEventListener {
     public void onClassRequestSaved(ClassRequestNotificationEvent event) {
 
         if (event.targetTutorUser() != null) {
-            // Mời đích danh: Gửi Notif cho Gia sư
-            log.info("Lưu DB thành công. Bắn thông báo Notif cho gia sư: {}", event.targetTutorUser().getEmail());
-
             notificationService.send(
                     event.targetTutorUser(),
                     "class_request_direct",
@@ -108,9 +118,7 @@ public class AppEventListener {
             );
 
         } else {
-            // Đăng công khai: Gửi Notif cho toàn bộ Admin
-            log.info("Lưu DB thành công. Bắn thông báo Notif (Public Request) cho Admin");
-
+            // Gửi Notif cho toàn bộ Admin
             List<User> admins = userRepository.findAllAdmins();
             admins.forEach(admin ->
                     notificationService.send(
@@ -130,18 +138,18 @@ public class AppEventListener {
         if (event.isAccepted()) {
             log.info("Gia sư {} đã đồng ý nhận lớp {}", event.tutorName(), event.classRequestId());
 
-            // 1. Gửi thông báo email và in-app cho học viên (Logic cũ đã viết)
+            // Gửi thông báo email và in-app cho học viên
             if (event.studentUser() != null) {
                 notificationService.send(
                         event.studentUser(),
                         "invite_accepted",
-                        "Gia sư đã đồng ý nhận lớp! 🎉",
+                        "Gia sư đã đồng ý nhận lớp!",
                         "Gia sư " + event.tutorName() + " đã đồng ý yêu cầu dạy học của bạn.",
                         "{\"redirect\": \"/student/classes/" + event.classRequestId() + "\"}"
                 );
             }
 
-            // THỰC HIỆN TODO: TỰ ĐỘNG KÍCH HOẠT SINH HỢP ĐỒNG NHÁP TẠI ĐÂY
+            // TỰ ĐỘNG KÍCH HOẠT SINH HỢP ĐỒNG NHÁP
             try {
                 log.info("Bắt đầu tự động tạo hợp đồng nháp (DRAFT) cho mã lớp: {}", event.classRequestId());
                 contractService.createDraftContract(event.classRequestId());
@@ -169,7 +177,7 @@ public class AppEventListener {
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void onClassRequestReviewed(ClassRequestReviewedEvent event) {
-        // 1. Xác định tiêu đề và nội dung thông báo dựa trên kết quả duyệt
+        // Xác định tiêu đề và nội dung thông báo dựa trên kết quả duyệt
         String title = event.isApproved() ? "Lớp học của bạn đã được duyệt!" : "Yêu cầu lớp học bị từ chối";
 
         String body = event.isApproved()
@@ -191,21 +199,18 @@ public class AppEventListener {
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void onTutorApplied(TutorAppliedEvent event) {
-        // Nếu học viên có tài khoản, gửi Notification trong App
         if (event.studentUser() != null) {
+            // Có tài khoản → gửi Notification in-app
             notificationService.send(event.studentUser(), "new_application",
                     "Có gia sư ứng tuyển!",
                     "Gia sư " + event.tutorName() + " vừa ứng tuyển vào lớp của bạn.",
                     "{\"redirect\": \"/student/requests/" + event.classRequestId() + "\"}");
-        }
-
-        // NẾU LÀ VÃNG LAI: Gửi email (Dùng email đã lấy từ event)
-        if (event.studentEmail() != null && !event.studentEmail().isBlank()) {
-            mailService.sendTutorAppliedEmail(
-                    event.studentEmail(),
-                    event.studentName(),
-                    event.tutorName()
-            );
+        } else {
+            // Vãng lai → fallback gửi email
+            if (event.studentEmail() != null && !event.studentEmail().isBlank()) {
+                StudentTutorPayload payload = new StudentTutorPayload(event.studentName(), event.tutorName(), null);
+                tutorAppliedEmailSender.execute(event.studentEmail(), payload);
+            }
         }
     }
 
@@ -222,13 +227,9 @@ public class AppEventListener {
             );
         }
 
-        // 2. Gửi email cho gia sư
-        mailService.sendTutorInvitedEmail(
-                event.tutorEmail(),
-                event.tutorName(),
-                event.studentName(),
-                event.message()
-        );
+        // Gửi email cho gia sư
+        TutorInvitedPayload payload = new TutorInvitedPayload(event.tutorName(), event.studentName(), event.message());
+        tutorInvitedEmailSender.execute(event.tutorEmail(), payload);
     }
 
 
@@ -242,31 +243,35 @@ public class AppEventListener {
         String reviewLink = "http://localhost:3000/reviews/guest?contractId="
                 + event.contractId() + "&token=" + magicToken;
 
-        contractRepository.updateGuestReviewToken(event.contractId(), magicToken);
-
-        // Truy vấn lại User trong một Session mới, an toàn tuyệt đối với Lazy Load
-        if (event.studentUserId() != null) {
-            User student = userRepository.findById(event.studentUserId()).orElse(null);
-
-            if (student != null) {
-                notificationService.send(
-                        student,
-                        "contract_completed",
-                        "Khóa học hoàn tất! Hãy đánh giá gia sư nhé \uD83C\uDF93",
-                        "Bạn cảm thấy Gia sư " + event.tutorName() + " như thế nào? Dành chút thời gian để lại nhận xét nhé.",
-                        "{\"redirect\": \"/student/contracts/" + event.contractId() + "?action=review\"}"
-                );
-            }
+        try {
+            contractRepository.updateGuestReviewToken(event.contractId(), magicToken);
+        } catch (Exception e) {
+            log.error("Lỗi khi cập nhật Review Token cho HD {}: {}", event.contractNumber(), e.getMessage());
+            return;
         }
 
-        // Gửi Email không hề bị ảnh hưởng
+        // Gửi notification nếu user có tài khoản
+        if (event.studentUserId() != null) {
+            userRepository.findById(event.studentUserId()).ifPresent(student -> notificationService.send(
+                    student,
+                    "contract_completed",
+                    "Khóa học hoàn tất! Hãy đánh giá gia sư nhé \uD83C\uDF93",
+                    "Bạn cảm thấy Gia sư " + event.tutorName() + " như thế nào? Dành chút thời gian để lại nhận xét nhé.",
+                    "{\"redirect\": \"/student/contracts/" + event.contractId() + "?action=review\"}"
+            ));
+        }
+
+        // Gửi Email
         if (event.studentEmail() != null && !event.studentEmail().isBlank()) {
-            mailService.sendReviewRequestEmail(
-                    event.studentEmail(),
+            ReviewEmailPayload payload = new ReviewEmailPayload(
                     event.studentName(),
                     event.tutorName(),
                     reviewLink
             );
+            reviewRequestEmailSender.execute(event.studentEmail(), payload);
+            log.info("Đã ủy quyền cho Template Method gửi email Review tới: {}", event.studentEmail());
+        } else {
+            log.warn("Không tìm thấy Email của học viên trong Hợp đồng {}", event.contractNumber());
         }
     }
 
@@ -287,22 +292,19 @@ public class AppEventListener {
             notificationService.send(
                     event.studentUser(),
                     "invite_accepted",
-                    "Gia sư đã đồng ý nhận lớp! 🎉",
+                    "Gia sư đã đồng ý nhận lớp!",
                     "Gia sư " + event.tutorName() + " đã chấp nhận lời mời của bạn.",
                     "{\"redirect\": \"/student/classes/" + event.classRequestId() + "\"}"
             );
         }
 
-        // 2. Gửi email thông báo cho học viên (cả khách vãng lai)
+        // Gửi email thông báo cho học viên (cả khách vãng lai)
         if (event.studentEmail() != null && !event.studentEmail().isBlank()) {
-            mailService.sendTutorAcceptedInvitationEmail(
-                    event.studentEmail(),
-                    event.studentName(),
-                    event.tutorName()
-            );
+            StudentTutorPayload payload = new StudentTutorPayload(event.studentName(), event.tutorName(), "");
+            tutorAcceptedInvitationEmailSender.execute(event.studentEmail(), payload);
         }
 
-        // 3. Tự động tạo Contract DRAFT — dùng try-catch riêng để lỗi Contract
+        // Tự động tạo Contract DRAFT — dùng try-catch riêng để lỗi Contract
         //    không làm mất thông báo đã gửi cho học viên
         try {
             log.info("Bắt đầu tạo hợp đồng DRAFT cho classRequest #{}", event.classRequestId());
@@ -323,22 +325,14 @@ public class AppEventListener {
     public void handleContractSignedEvent(ContractSignedEvent event) {
         log.info("Bắt đầu tiến trình gửi email hợp đồng điện tử bất đồng bộ cho mã: {}", event.contractNumber());
         try {
-            // 1. Gửi Email đính kèm tệp tin PDF cho Gia sư
-            mailService.sendContractAttachmentEmail(
-                    event.tutorEmail(),
-                    event.tutorName(),
-                    event.contractNumber(),
-                    event.pdfBytes()
-            );
+            // Gửi Email đính kèm tệp tin PDF cho Gia sư
+            ContractAttachmentPayload tutorPayload = new ContractAttachmentPayload(event.tutorName(), event.contractNumber(), event.pdfBytes());
+            contractAttachmentEmailSender.execute(event.tutorEmail(), tutorPayload);
 
-            // 2. Gửi Email đính kèm tệp tin PDF cho Phụ huynh / Học sinh (Nếu có email)
+            // Gửi Email đính kèm tệp tin PDF cho học viên (Nếu có email)
             if (event.studentEmail() != null && !event.studentEmail().isBlank()) {
-                mailService.sendContractAttachmentEmail(
-                        event.studentEmail(),
-                        event.studentName(),
-                        event.contractNumber(),
-                        event.pdfBytes()
-                );
+                ContractAttachmentPayload studentPayload = new ContractAttachmentPayload(event.studentName(), event.contractNumber(), event.pdfBytes());
+                contractAttachmentEmailSender.execute(event.studentEmail(), studentPayload);
             }
             log.info("Đã gửi email hợp đồng thành công đến các bên liên quan.");
         } catch (Exception e) {
@@ -358,25 +352,19 @@ public class AppEventListener {
 
         // 1. Gửi thông báo in-app cho Gia sư
         if (event.tutorUserId() != null) {
-            User tutor = userRepository.findById(event.tutorUserId()).orElse(null);
-            if (tutor != null) {
-                notificationService.send(
-                        tutor,
-                        "application_accepted",
-                        "Chúc mừng! Phụ huynh đã chọn bạn 🎉",
-                        "Phụ huynh " + event.studentName() + " đã đồng ý chọn bạn dạy lớp của họ. Vui lòng xác nhận hợp đồng để nhận lớp.",
-                        "{\"redirect\": \"/account/my-classes\"}" // Dẫn thẳng ra màn quản lý hợp đồng của gia sư
-                );
-            }
+            userRepository.findById(event.tutorUserId()).ifPresent(tutor -> notificationService.send(
+                    tutor,
+                    "application_accepted",
+                    "Chúc mừng! Phụ huynh đã chọn bạn 🎉",
+                    "Phụ huynh " + event.studentName() + " đã đồng ý chọn bạn dạy lớp của họ. Vui lòng xác nhận hợp đồng để nhận lớp.",
+                    "{\"redirect\": \"/account/my-classes\"}" // Dẫn thẳng ra màn quản lý hợp đồng của gia sư
+            ));
         }
 
         // 2. Gửi email thông báo cho Gia sư
         if (event.tutorEmail() != null && !event.tutorEmail().isBlank()) {
-            mailService.sendTutorApplicationAcceptedEmail(
-                    event.tutorEmail(),
-                    event.tutorName(),
-                    event.studentName()
-            );
+            StudentTutorPayload payload = new StudentTutorPayload(event.studentName(), event.tutorName(), "");
+            tutorApplicationAcceptedEmailSender.execute(event.tutorEmail(), payload);
         }
     }
 
@@ -391,24 +379,18 @@ public class AppEventListener {
                 event.getApplicationId(), event.getTutorFullName());
 
         // 1. Gửi thông báo in-app cho Gia sư
-        User tutor = userRepository.findById(event.getTutorUserId()).orElse(null);
-        if (tutor != null) {
-            notificationService.send(
-                    tutor,
-                    "application_rejected_by_admin",
-                    "Đơn ứng tuyển của bạn đã bị từ chối",
-                    "Đơn ứng tuyển vào lớp của phụ huynh " + event.getClassContactName() + " không được chấp thuận.",
-                    "{\"redirect\": \"/tutor/applications\"}"
-            );
-        }
+        userRepository.findById(event.getTutorUserId()).ifPresent(tutor -> notificationService.send(
+                tutor,
+                "application_rejected_by_admin",
+                "Đơn ứng tuyển của bạn đã bị từ chối",
+                "Đơn ứng tuyển vào lớp của phụ huynh " + event.getClassContactName() + " không được chấp thuận.",
+                "{\"redirect\": \"/tutor/applications\"}"
+        ));
 
         // 2. Gửi email thông báo cho Gia sư
         if (event.getTutorEmail() != null && !event.getTutorEmail().isBlank()) {
-            mailService.sendApplicationRejectedByAdminEmail(
-                    event.getTutorEmail(),
-                    event.getTutorFullName(),
-                    event.getClassContactName()
-            );
+            ApplicationRejectedPayload payload = new ApplicationRejectedPayload(event.getTutorFullName(), event.getClassContactName());
+            applicationRejectedByAdminEmailSender.execute(event.getTutorEmail(), payload);
         }
     }
 
@@ -441,13 +423,16 @@ public class AppEventListener {
         if (event.rating() <= 2) {
             List<User> admins = userRepository.findAllAdmins();
             admins.forEach(admin ->
-                    notificationService.send(
-                            admin,
-                            "negative_review_alert",
-                            "⚠️ Cảnh báo đánh giá thấp",
-                            "Gia sư " + tutor.getFullName() + " vừa nhận 1 đánh giá " + event.rating() + " sao. Hãy kiểm tra ngay.",
-                            "{\"redirect\": \"/admin/reviews\"}"
-                    )
+                    {
+                        assert tutor != null;
+                        notificationService.send(
+                                admin,
+                                "negative_review_alert",
+                                "Cảnh báo đánh giá thấp",
+                                "Gia sư " + tutor.getFullName() + " vừa nhận 1 đánh giá " + event.rating() + " sao. Hãy kiểm tra ngay.",
+                                "{\"redirect\": \"/admin/reviews\"}"
+                        );
+                    }
             );
         }
     }

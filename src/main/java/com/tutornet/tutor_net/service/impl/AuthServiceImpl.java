@@ -8,6 +8,7 @@ import com.tutornet.tutor_net.entity.*;
 import com.tutornet.tutor_net.enums.UserStatus;
 import com.tutornet.tutor_net.event.PasswordResetRequestedEvent;
 import com.tutornet.tutor_net.event.UserRegisteredEvent;
+import com.tutornet.tutor_net.exception.BusinessException;
 import com.tutornet.tutor_net.exception.ResourceNotFoundException;
 import com.tutornet.tutor_net.exception.BadRequestException;
 import com.tutornet.tutor_net.repository.PasswordResetTokenRepository;
@@ -20,17 +21,18 @@ import com.tutornet.tutor_net.service.AuthService;
 import com.tutornet.tutor_net.service.JwtService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.time.Instant;
-import java.time.Instant;
-import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Service
 @RequiredArgsConstructor
@@ -43,11 +45,18 @@ public class AuthServiceImpl implements AuthService {
     private final VerificationTokenRepository tokenRepository;
     private final PasswordResetTokenRepository passwordResetTokenRepository;
 
-    // Tiêm các Login Processors áp dụng Template Method
+    // Login Processors áp dụng Template Method
     private final ClientLoginProcessor clientLoginProcessor;
     private final AdminLoginProcessor adminLoginProcessor;
 
     private static final long RESET_TOKEN_EXPIRY_MINUTES = 15;
+    private final Map<String, Instant> tokenBlacklist = new ConcurrentHashMap<>();
+
+    @Scheduled(fixedDelay = 600_000)
+    public void evictExpiredTokens() {
+        Instant now = Instant.now();
+        tokenBlacklist.entrySet().removeIf(e -> now.isAfter(e.getValue()));
+    }
 
     @Override
     @Transactional
@@ -162,6 +171,11 @@ public class AuthServiceImpl implements AuthService {
     public TokenResponse refreshToken(RefreshTokenRequest request) {
         String refreshToken = request.refreshToken();
 
+        // Kiểm tra blacklist
+        if (tokenBlacklist.containsKey(refreshToken)) {
+            throw new BusinessException("Refresh token đã bị thu hồi, vui lòng đăng nhập lại");
+        }
+
         if (!jwtService.isValidRefreshToken(refreshToken)) {
             throw new RuntimeException("Refresh token không hợp lệ hoặc đã hết hạn");
         }
@@ -230,8 +244,12 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
-    public void logout(String token) {
-        // JWT là stateless, việc xóa token chủ yếu xử lý ở Frontend.
-        // Nếu cần làm tầng bảo mật cao, bạn có thể triển khai lưu token vào Redis Blacklist tại đây.
+    public void logout(String refreshToken) {
+        if (refreshToken != null && jwtService.isValidRefreshToken(refreshToken)) {
+            Instant expiry = jwtService.getExpirationFromToken(refreshToken);
+            if (expiry.isAfter(Instant.now())) {
+                tokenBlacklist.put(refreshToken, expiry);
+            }
+        }
     }
 }

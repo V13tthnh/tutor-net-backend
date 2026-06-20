@@ -18,7 +18,7 @@ import java.util.Optional;
 
 @Repository
 public interface ClassRequestRepository extends JpaRepository<ClassRequest, Long> {
-    @Query("SELECT cr FROM ClassRequest cr JOIN FETCH cr.user WHERE cr.id = :id")
+    @Query("SELECT cr FROM ClassRequest cr LEFT JOIN FETCH cr.user WHERE cr.id = :id")
     Optional<ClassRequest> findByIdWithUser(@Param("id") Long id);
 
     @Query(value = """
