@@ -200,4 +200,9 @@ public final class UserRequest {
             @NotNull(message = "roleId không được để trống")
             Long roleId
     ) {}
+
+    public record DeleteAccountRequest(
+            @NotBlank(message = "Vui lòng nhập mật khẩu để xác nhận xoá tài khoản")
+            String password
+    ) {}
 }

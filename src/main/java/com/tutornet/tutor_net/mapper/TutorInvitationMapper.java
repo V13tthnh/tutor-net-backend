@@ -55,7 +55,7 @@ public class TutorInvitationMapper {
      * Ví dụ:  0912345678  →  091*****78
      *         +84912345678 →  +84*****78  (prefix không phải digit được giữ)
      */
-    static String maskPhone(String phone) {
+    public  static String maskPhone(String phone) {
         if (phone == null || phone.isBlank()) return phone;
 
         // Tách prefix không phải chữ số (vd: +84)
@@ -87,7 +87,7 @@ public class TutorInvitationMapper {
      *         ab@yahoo.com          →  a*b@yahoo.com
      *         a@outlook.com         →  a**@outlook.com
      */
-    static String maskEmail(String email) {
+    public  static String maskEmail(String email) {
         if (email == null || email.isBlank()) return email;
 
         int atIndex = email.indexOf('@');

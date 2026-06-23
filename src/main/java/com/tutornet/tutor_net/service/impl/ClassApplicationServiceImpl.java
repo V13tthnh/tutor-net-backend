@@ -6,6 +6,7 @@ import com.tutornet.tutor_net.entity.*;
 import com.tutornet.tutor_net.enums.ApplicationStatus;
 import com.tutornet.tutor_net.enums.ClassRequestStatus;
 import com.tutornet.tutor_net.enums.ContractStatus;
+import com.tutornet.tutor_net.enums.TutorStatus;
 import com.tutornet.tutor_net.event.TutorApplicationAcceptedEvent;
 import com.tutornet.tutor_net.event.TutorApplicationRejectedByAdminEvent;
 import com.tutornet.tutor_net.event.TutorAppliedEvent;
@@ -51,6 +52,10 @@ public class ClassApplicationServiceImpl implements ClassApplicationService {
         // Lấy hồ sơ Gia sư đang thao tác
         TutorProfile tutorProfile = tutorProfileRepo.findByUserId(tutorUserId)
                 .orElseThrow(() -> new BusinessException("Bạn chưa có hồ sơ gia sư hoặc hồ sơ chưa được duyệt"));
+
+        if (tutorProfile.getStatus() != TutorStatus.APPROVED) {
+            throw new BusinessException("Hồ sơ gia sư của bạn chưa được phê duyệt. Vui lòng đợi ban quản trị duyệt hồ sơ trước khi nhận lớp");
+        }
 
         // Kiểm tra Yêu cầu lớp học có tồn tại không
         ClassRequest classRequest = classRequestRepo.findById(requestId)
@@ -108,6 +113,10 @@ public class ClassApplicationServiceImpl implements ClassApplicationService {
         TutorProfile tutor = tutorProfileRepo.findByUserId(tutorUserId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy hồ sơ Gia sư của bạn"));
 
+        if (tutor.getStatus() != TutorStatus.APPROVED) {
+            throw new BusinessException("Hồ sơ gia sư của bạn chưa được phê duyệt. Vui lòng đợi ban quản trị duyệt hồ sơ trước khi nhận lớp.");
+        }
+
         ClassRequest classRequest = classRequestRepo.findByIdWithUser(classRequestId)
                 .orElseThrow(() -> new ResourceNotFoundException("Lớp học không tồn tại"));
 
@@ -134,7 +143,7 @@ public class ClassApplicationServiceImpl implements ClassApplicationService {
         application = applicationRepo.save(application);
 
         eventPublisher.publishEvent(new TutorAppliedEvent(
-                application.getId(),
+                classRequest.getId(),
                 classRequest.getContactName(),
                 classRequest.getContactEmail(),
                 classRequest.getUser(),
@@ -193,11 +202,11 @@ public class ClassApplicationServiceImpl implements ClassApplicationService {
                 .orElseThrow(() -> new ResourceNotFoundException("Đơn ứng tuyển không tồn tại."));
 
         if (!selectedApplication.getClassRequest().getId().equals(classRequestId)) {
-            throw BusinessException.validationFailed("Đơn ứng tuyển không thuộc về lớp học này.");
+            throw BusinessException.validationFailed("Đơn ứng tuyển không thuộc về lớp học này");
         }
 
         if (selectedApplication.getStatus() != ApplicationStatus.PENDING) {
-            throw BusinessException.validationFailed("Đơn ứng tuyển này đã được xử lý.");
+            throw BusinessException.validationFailed("Đơn ứng tuyển này đã được xử lý");
         }
 
         // 3. Cập nhật Đơn được chọn -> ACCEPTED
@@ -220,7 +229,6 @@ public class ClassApplicationServiceImpl implements ClassApplicationService {
         }
         if (!otherApplications.isEmpty()) {
             applicationRepo.saveAll(otherApplications);
-            // Gợi ý: Có thể bắn Event gửi mail "Rất tiếc" cho danh sách otherApplications ở đây
         }
 
         // 6. GIAI ĐOẠN 3 (BƯỚC ĐỆM): Tự động tạo Hợp đồng chờ ký số

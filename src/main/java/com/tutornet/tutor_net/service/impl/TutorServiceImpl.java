@@ -1,6 +1,7 @@
 package com.tutornet.tutor_net.service.impl;
 
 import com.tutornet.tutor_net.dto.request.InviteTutorRequest;
+import com.tutornet.tutor_net.dto.response.TutorResponse;
 import com.tutornet.tutor_net.entity.ClassRequest;
 import com.tutornet.tutor_net.entity.TutorInvitation;
 import com.tutornet.tutor_net.entity.TutorProfile;
@@ -11,10 +12,10 @@ import com.tutornet.tutor_net.event.TutorInvitedEvent;
 import com.tutornet.tutor_net.event.TutorRespondedToInviteEvent;
 import com.tutornet.tutor_net.exception.BusinessException;
 import com.tutornet.tutor_net.exception.ResourceNotFoundException;
+import com.tutornet.tutor_net.mapper.TutorProfileMapper;
 import com.tutornet.tutor_net.repository.ClassRequestRepository;
 import com.tutornet.tutor_net.repository.TutorInvitationRepository;
 import com.tutornet.tutor_net.repository.TutorProfileRepository;
-import com.tutornet.tutor_net.repository.UserRepository;
 import com.tutornet.tutor_net.service.TutorService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -26,9 +27,9 @@ import org.springframework.stereotype.Service;
 public class TutorServiceImpl implements TutorService {
 
     private final TutorProfileRepository    tutorProfileRepository;
-    private final UserRepository            userRepository;
     private final TutorInvitationRepository invitationRepository;
     private final ClassRequestRepository    classRequestRepository;
+    private final TutorProfileMapper mapper;
     private final ApplicationEventPublisher eventPublisher;
 
     @Override
@@ -36,6 +37,10 @@ public class TutorServiceImpl implements TutorService {
     public void processTutorInvitation(Long tutorId, Long studentUserId, InviteTutorRequest request) {
         TutorProfile tutor = tutorProfileRepository.findById(tutorId)
                 .orElseThrow(() -> new ResourceNotFoundException("Gia sư không tồn tại"));
+
+        if (studentUserId != null && studentUserId.equals(tutor.getUser().getId())) {
+            throw new BusinessException("Bạn không thể tự gửi lời mời dạy học cho chính mình");
+        }
 
         // Lấy thông tin Lớp học từ Dropdown mà học viên chọn
         ClassRequest classRequest = classRequestRepository.findById(request.classRequestId())
@@ -52,7 +57,7 @@ public class TutorServiceImpl implements TutorService {
             throw new BusinessException("Bạn đã gửi lời mời cho gia sư này và đang chờ phản hồi. Vui lòng không gửi lại.");
         }
 
-        // KHỞI TẠO LỜI MỜI MỚI CHỈ VỚI KHÓA NGOẠI
+        // khởi tạo lời mời với khoá ngoại
         TutorInvitation invitation = TutorInvitation.builder()
                 .tutor(tutor)
                 .classRequest(classRequest)
@@ -67,7 +72,7 @@ public class TutorServiceImpl implements TutorService {
                 tutor.getUser(),
                 tutor.getUser().getEmail(),
                 tutor.getUser().getFullName(),
-                classRequest.getContactName(), // Lấy tên từ classRequest
+                classRequest.getContactName(),
                 request.message()
         ));
     }
@@ -75,7 +80,6 @@ public class TutorServiceImpl implements TutorService {
     @Override
     @Transactional
     public void acceptTutorInvitation(Long invitationId, Long tutorUserId) {
-
         TutorInvitation invitation = invitationRepository.findById(invitationId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy lời mời này"));
 
@@ -90,7 +94,7 @@ public class TutorServiceImpl implements TutorService {
         invitation.setStatus(InvitationStatus.ACCEPTED);
         invitationRepository.save(invitation);
 
-        // 🌟 KHÔNG TẠO LỚP MỚI NỮA, CẬP NHẬT TRẠNG THÁI LỚP CŨ
+        // cập nhật trang thái lớp cũ
         ClassRequest classRequest = invitation.getClassRequest();
         classRequest.setStatus(ClassRequestStatus.MATCHED);
         classRequest.setTargetTutor(invitation.getTutor());
@@ -106,5 +110,16 @@ public class TutorServiceImpl implements TutorService {
                 invitation.getTutor().getUser().getFullName(),
                 true
         ));
+    }
+
+    @Override
+    public TutorResponse.TutorProfileResponse getTutorById(Long tutorId) {
+        TutorProfile profile = findWithDetailsOrThrow(tutorId);
+        return mapper.toResponse(profile);
+    }
+
+    private TutorProfile findWithDetailsOrThrow(Long tutorId) {
+        return tutorProfileRepository.findByIdWithDetails(tutorId)
+                .orElseThrow(() -> ResourceNotFoundException.of("Hồ sơ gia sư", tutorId));
     }
 }

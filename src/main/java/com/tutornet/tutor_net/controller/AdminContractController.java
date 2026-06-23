@@ -37,7 +37,7 @@ public class AdminContractController {
      * Thúc đẩy tiến độ: Lọc status = PENDING_SIGNATURE, sortBy = createdAt, sortDir = asc để tìm hợp đồng bị ngâm lâu nhất.
      */
     @GetMapping
-    @PreAuthorize("hasAuthority('tutor:manage') or hasAuthority('contract:read')")
+    @PreAuthorize("hasAuthority('tutor:manage')")
     public ResponseEntity<ApiResponse<Page<AdminContractResponse>>> getAllContractsForAdmin(
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) ContractStatus status,
@@ -101,7 +101,7 @@ public class AdminContractController {
     }
 
     @GetMapping("/{contractId}/download-pdf")
-    @PreAuthorize("hasAuthority('contract:read')")
+    @PreAuthorize("hasAuthority('tutor:manage')")
     public void downloadContractPdf(
             @PathVariable Long contractId,
             HttpServletResponse response

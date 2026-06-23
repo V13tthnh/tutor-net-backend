@@ -111,7 +111,7 @@ public class TutorInvitationServiceImpl implements TutorInvitationService {
         contract = contractRepository.save(contract);
 
         // in PDF từ ContractService
-        contractService.signContractAndGeneratePdf(contract.getId(), ipAddress);
+        contractService.signContractAndGeneratePdf(contract.getId(), ipAddress, tutorUserId);
     }
 
     // ---------------------------------------------------------------
@@ -167,15 +167,16 @@ public class TutorInvitationServiceImpl implements TutorInvitationService {
         }
         String detailedSchedule = sb.isEmpty() ? "Theo thỏa thuận" : sb.toString();
 
+        boolean revealed = InvitationStatus.ACCEPTED.equals(invitation.getStatus());
+
         return new ContractPreviewResponse(
                 tutorUser.getFullName(),
                 tutorUser.getBirthYear() != null ? tutorUser.getBirthYear() : 2000,
                 tutorUser.getPhone(),
                 tutorUser.getEmail(),
-
                 cr.getContactName(),
-                cr.getContactPhone(),
-                cr.getContactEmail(),
+                revealed ? cr.getContactPhone() : TutorInvitationMapper.maskPhone(cr.getContactPhone()),
+                revealed ? cr.getContactEmail() : TutorInvitationMapper.maskEmail(cr.getContactEmail()),
                 "Địa chỉ chi tiết sẽ hiển thị sau khi ký nhận",
                 cr.getSubject() != null ? cr.getSubject().getName() : "N/A",
                 hourlyRate,
@@ -186,13 +187,7 @@ public class TutorInvitationServiceImpl implements TutorInvitationService {
         );
     }
 
-    // ---------------------------------------------------------------
-    // Private helpers
-    // ---------------------------------------------------------------
-
-    /**
-     * Load lời mời, kiểm tra gia sư đang đăng nhập có phải chủ sở hữu không.
-     */
+    // Load lời mời, kiểm tra gia sư đang đăng nhập có phải chủ sở hữu không
     private TutorInvitation loadAndVerifyOwnership(Long invitationId, Long tutorUserId) {
         TutorInvitation invitation = invitationRepository.findById(invitationId)
                 .orElseThrow(() -> new ResourceNotFoundException(

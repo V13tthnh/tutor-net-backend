@@ -28,7 +28,7 @@ public class ContractPdfGenerator extends BasePdfGenerator<ContractPdfPayload> {
 
     @Override
     protected String getTemplateName() {
-        return "contracts"; // Trỏ tới templates/contract/contracts.html
+        return "contract/contracts"; // Trỏ tới templates/contract/contracts.html
     }
 
     // Hàm hỗ trợ Render 2 lần để lấy mã Hash

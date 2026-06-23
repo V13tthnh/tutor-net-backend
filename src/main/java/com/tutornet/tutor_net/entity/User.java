@@ -10,8 +10,6 @@ import org.hibernate.annotations.UpdateTimestamp;
 import org.hibernate.annotations.SQLRestriction;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
-import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.type.SqlTypes;
 
 import java.time.Instant;
 import java.util.HashMap;
@@ -26,7 +24,6 @@ import java.util.Set;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-// Cấu hình Soft Delete tự động của Hibernate
 @SQLDelete(sql = "UPDATE users SET deleted_at = NOW() WHERE id = ?")
 @SQLRestriction("deleted_at IS NULL")
 public class User {

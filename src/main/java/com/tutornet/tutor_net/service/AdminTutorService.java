@@ -16,7 +16,7 @@ public interface AdminTutorService {
             Pageable pageable
     );
 
-    TutorResponse.TutorProfileResponse getTutorById(Long tutorId);      // xem CV đầy đủ
+    TutorResponse.TutorProfileResponse getTutorById(Long tutorId);
 
     TutorResponse.TutorStatsResponse getStats();
 

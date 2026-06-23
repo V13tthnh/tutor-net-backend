@@ -16,7 +16,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/v1/admin/subjects")
 @RequiredArgsConstructor
-public class SubjectAdminController {
+public class AdminSubjectController {
 
     private final SubjectService subjectService;
 

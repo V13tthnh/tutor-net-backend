@@ -6,3 +6,4 @@ import com.tutornet.tutor_net.entity.TutorProfile;
 public interface FeeElement {
     void accept(FeeVisitor visitor);
 }
+

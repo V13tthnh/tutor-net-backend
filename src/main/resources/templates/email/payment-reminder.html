@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Nhắc nhở thanh toán phí nhận lớp</title>
+    <title>Thông báo đơn ứng tuyển không được chấp thuận</title>
     <style>
         body {
             margin: 0;
@@ -12,67 +12,71 @@
             font-family: Arial, sans-serif;
             -webkit-font-smoothing: antialiased;
         }
-        table {
-            border-collapse: collapse;
-        }
+        table { border-collapse: collapse; }
     </style>
 </head>
 <body style="margin: 0; padding: 0; background-color: #f4f4f4; font-family: Arial, sans-serif;">
 
-<table style="background-color: #f4f4f4; padding: 40px 0;">
+<table border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #f4f4f4; padding: 40px 0;">
     <tr>
-        <td >
-            <table style="background-color: #ffffff; border: 1px solid #dddddd;">
+        <td align="center">
+            <table border="0" cellpadding="0" cellspacing="0" width="600" style="background-color: #ffffff; border: 1px solid #dddddd;">
 
+                <!-- Header -->
                 <tr>
                     <td style="padding: 30px 40px 20px 40px; border-bottom: 2px solid #333333;">
-                        <h2 style="margin: 0; color: #333333; font-size: 24px; letter-spacing: 2px; text-transform: uppercase;">TutorNet</h2>
+                        <h2 style="margin: 0; color: #333333; font-size: 24px; letter-spacing: 2px; text-transform: uppercase; display: inline;">TutorNet</h2>
+                        <span style="float: right; font-size: 11px; color: #666666; text-transform: uppercase; letter-spacing: 1px; padding-top: 6px;">Ứng tuyển gia sư</span>
                     </td>
                 </tr>
 
+                <!-- Body -->
                 <tr>
                     <td style="padding: 40px 40px 30px 40px; color: #333333; line-height: 1.6; font-size: 15px;">
-                        <p style="margin: 0 0 20px 0;">Xin chào Gia sư <strong th:text="${name}">[Tên Gia Sư]</strong>,</p>
+                        <p style="margin: 0 0 20px 0;">Xin chào Gia sư <strong th:text="${tutorName}">[Tên Gia Sư]</strong>,</p>
 
-                        <p style="margin: 0 0 20px 0;">Hệ thống TutorNet trân trọng thông báo đến bạn về khoản phí nhận lớp dịch vụ đối với hợp đồng số <strong th:text="${contractNumber}">[Mã Hợp Đồng]</strong>.</p>
+                        <p style="margin: 0 0 20px 0;">Chúng tôi xin thông báo rằng đơn ứng tuyển của bạn vào lớp học của phụ huynh/học viên <strong th:text="${contactName}">[Tên Học Viên]</strong> đã không được hệ thống TutorNet chấp thuận.</p>
 
-                        <table style="background-color: #f9f9f9; border-left: 4px solid #333333; margin: 0 0 20px 0;">
+                        <table cellpadding="0" cellspacing="0" width="100%" style="background-color: #f9f9f9; border-left: 4px solid #333333; margin: 0 0 20px 0;">
                             <tr>
-                                <td style="font-size: 14px; color: #333333;">
-                                    <strong>Số tiền cần thanh toán:</strong> <span style="color: #d9534f; font-weight: bold; font-size: 16px;" th:text="${amount}">[Số Tiền]</span><br><br>
-                                    <strong>Hạn chót thanh toán:</strong> <span th:text="${deadline}">[Ngày Hết Hạn]</span>
+                                <td style="padding: 14px 18px; font-size: 14px; color: #333333; line-height: 1.8;">
+                                    <strong>Trạng thái:</strong> <span style="color: #d9534f; font-weight: bold;">Không được chấp thuận</span><br>
+                                    <strong>Học viên:</strong> <span th:text="${contactName}">[Tên Học Viên]</span>
                                 </td>
                             </tr>
                         </table>
 
-                        <p style="margin: 0 0 20px 0;">Để duy trì tình trạng hoạt động của lớp học và tránh việc hợp đồng bị xử lý vi phạm theo quy định, vui lòng tiến hành thanh toán trực tuyến thông qua cổng VNPay bằng cách nhấn vào nút dưới đây.</p>
+                        <p style="margin: 0 0 20px 0;">Điều này có thể xuất phát từ một số lý do như yêu cầu của lớp học đã thay đổi hoặc vị trí đã được lấp đầy. Đừng nản lòng — vẫn còn rất nhiều lớp học đang chờ một gia sư phù hợp như bạn!</p>
 
-                        <table style="margin: 30px 0;">
+                        <table cellpadding="0" cellspacing="0" style="margin: 30px 0;">
                             <tr>
                                 <td>
-                                    <a th:href="@{'http://localhost:8080/api/v1/payments/click-pay-email?contractNumber=' + ${contractNumber}}"
+                                    <a href="http://localhost:3000/classes"
                                        style="background-color: #333333; color: #ffffff; text-decoration: none; padding: 12px 30px; font-size: 14px; font-weight: bold; border-radius: 2px; display: inline-block; text-transform: uppercase;">
-                                        Tiến hành thanh toán
+                                        Tìm lớp học khác
                                     </a>
                                 </td>
                             </tr>
                         </table>
 
                         <p style="margin: 0 0 10px 0; font-size: 14px; color: #666666; font-style: italic;">
-                            Lưu ý: Nút bấm trên sẽ tự động điều hướng và sinh ra một phiên giao dịch VNPay bảo mật, phiên giao dịch này có hiệu lực tối đa 15 phút kể từ lúc bạn click vào nút.
+                            Lưu ý: Nếu bạn cho rằng đây là sự nhầm lẫn, vui lòng liên hệ đội ngũ hỗ trợ của TutorNet để được giải đáp.
                         </p>
                     </td>
                 </tr>
 
+                <!-- Footer -->
                 <tr>
                     <td style="padding: 20px 40px; background-color: #f9f9f9; border-top: 1px solid #dddddd; color: #666666; font-size: 12px; line-height: 1.5; text-align: center;">
                         <p style="margin: 0 0 10px 0;">Đây là email tự động từ hệ thống TutorNet. Vui lòng không trả lời email này.</p>
                         <p style="margin: 0;">Trân trọng,<br>Đội ngũ Vận hành TutorNet.</p>
                     </td>
                 </tr>
+
             </table>
         </td>
     </tr>
 </table>
+
 </body>
 </html>

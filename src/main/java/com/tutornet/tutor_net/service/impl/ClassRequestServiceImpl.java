@@ -181,6 +181,17 @@ public class ClassRequestServiceImpl implements ClassRequestService {
     @Transactional
     public ClassRequestResponse createClassRequest(CreateClassRequest request, Long authenticatedUserId) {
 
+        if (authenticatedUserId == null
+                && request.contactEmail() != null
+                && !request.contactEmail().isBlank()
+                && userRepository.existsByEmail(request.contactEmail())) {
+
+            throw BusinessException.validationFailed(
+                    "Email này đã được đăng ký tài khoản trên hệ thống. " +
+                            "Vui lòng đăng nhập để đăng lớp và theo dõi lớp học của bạn."
+            );
+        }
+
         // Nếu học OFFLINE thì bắt buộc phải nhập địa chỉ chi tiết
         TeachingMode mode = TeachingMode.valueOf(request.teachingMode().toUpperCase());
         if (mode == TeachingMode.OFFLINE && (request.addressDetail() == null || request.addressDetail().isBlank())) {
@@ -200,6 +211,9 @@ public class ClassRequestServiceImpl implements ClassRequestService {
         if (authenticatedUserId != null) {
             User user = userRepository.findById(authenticatedUserId)
                     .orElseThrow(() -> ResourceNotFoundException.of("Tài khoản", authenticatedUserId));
+            if (user.hasRole("admin") || user.hasRole("super_admin")) {
+                throw new BusinessException("Tài khoản quản trị viên không được phép đăng yêu cầu lớp học.");
+            }
             classRequest.setUser(user);
         }
 
@@ -208,20 +222,16 @@ public class ClassRequestServiceImpl implements ClassRequestService {
         if (request.targetTutorId() != null) {
             targetTutor = tutorProfileRepo.findById(request.targetTutorId())
                     .orElseThrow(() -> new BusinessException("Không tìm thấy gia sư cần mời"));
+            
+            if (authenticatedUserId != null && targetTutor.getUser().getId().equals(authenticatedUserId)) {
+                throw new BusinessException("Bạn không thể tự gửi lời mời dạy học cho chính mình");
+            }
             classRequest.setTargetTutor(targetTutor);
         }
 
         // thông báo trực tiếp cho Gia sư mục tiêu biết rằng họ có lời mời dạy mới.
         if (request.contactEmail() != null && !request.contactEmail().isBlank()) {
             mailService.sendClassRequestConfirmationEmail(request.contactEmail(), request.contactName(), subject.getName());
-        }
-
-        if (targetTutor != null) {
-            mailService.sendTutorDirectInviteEmail(
-                    targetTutor.getUser().getEmail(),
-                    targetTutor.getUser().getFullName(),
-                    subject.getName());
-
         }
 
         // TÍNH LƯƠNG GIỜ ĐỒNG BỘ
@@ -327,7 +337,7 @@ public class ClassRequestServiceImpl implements ClassRequestService {
         List<ClassRequestResponse> content = requestPage.getContent().stream()
                 .map(cr -> {
                     int count = applicationRepo.countByClassRequestId(cr.getId());
-                    return mapper.toResponseWithCount(cr, count);
+                    return mapper.toAdminResponse(cr, count);
                 })
                 .collect(Collectors.toList());
 
@@ -351,7 +361,7 @@ public class ClassRequestServiceImpl implements ClassRequestService {
                 .orElseThrow(() -> ResourceNotFoundException.of("Yêu cầu tạo lớp", id));
 
         int count = applicationRepo.countByClassRequestId(classRequest.getId());
-        return mapper.toResponseWithCount(classRequest, count);
+        return mapper.toAdminResponse(classRequest, count);
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -429,7 +439,7 @@ public class ClassRequestServiceImpl implements ClassRequestService {
         }
 
         int count = applicationRepo.countByClassRequestId(savedRequest.getId());
-        return mapper.toResponseWithCount(savedRequest, count);
+        return mapper.toAdminResponse(savedRequest, count);
     }
 
     @Override

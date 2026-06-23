@@ -1,25 +1,26 @@
 package com.tutornet.tutor_net.service.impl;
-
+ 
 import com.tutornet.tutor_net.config.FileStorageProperties;
 import com.tutornet.tutor_net.exception.BusinessException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
-
+ 
 import java.io.IOException;
 import java.nio.file.*;
+import java.util.List;
 import java.util.UUID;
-
+ 
 @Service
 @RequiredArgsConstructor
 public class FileStorageServiceImpl {
-
+ 
     private final FileStorageProperties props;
-
+ 
     // ---------------------------------------------------------------
     // Existing methods (giữ nguyên)
     // ---------------------------------------------------------------
-
+ 
     public String storeAvatar(MultipartFile file) throws IOException {
         if (file.isEmpty()) {
             throw new BusinessException("File không được rỗng");
@@ -30,21 +31,26 @@ public class FileStorageServiceImpl {
         if (!props.getAllowedTypes().contains(file.getContentType())) {
             throw new BusinessException("Chỉ chấp nhận file ảnh jpg, png, webp, gif");
         }
-
+ 
+        String ext = getExtension(file.getOriginalFilename());
+        List<String> allowedExts = List.of("jpg", "jpeg", "png", "webp", "gif");
+        if (!allowedExts.contains(ext)) {
+            throw new BusinessException("Tên đuôi file mở rộng không hợp lệ. Chỉ chấp nhận jpg, jpeg, png, webp, gif");
+        }
+ 
         Path uploadPath = Paths.get(props.getDir(), "avatars");
         if (!Files.exists(uploadPath)) {
             Files.createDirectories(uploadPath);
         }
-
-        String ext      = getExtension(file.getOriginalFilename());
+ 
         String fileName = UUID.randomUUID() + "." + ext;
         Path   filePath = uploadPath.resolve(fileName);
-
+ 
         Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
-
+ 
         return "/uploads/avatars/" + fileName;
     }
-
+ 
     public String storeDocument(MultipartFile file) throws IOException {
         if (file.isEmpty()) {
             throw new BusinessException("File không được rỗng");
@@ -57,18 +63,23 @@ public class FileStorageServiceImpl {
                 (!props.getAllowedTypes().contains(contentType) && !contentType.equals("application/pdf"))) {
             throw new BusinessException("Chỉ chấp nhận file ảnh (jpg, png, webp, gif) hoặc tài liệu PDF");
         }
-
+ 
+        String ext = getExtension(file.getOriginalFilename());
+        List<String> allowedExts = List.of("pdf", "jpg", "jpeg", "png", "webp", "gif");
+        if (!allowedExts.contains(ext)) {
+            throw new BusinessException("Tên đuôi file mở rộng không hợp lệ. Chỉ chấp nhận pdf, jpg, jpeg, png, webp, gif");
+        }
+ 
         Path uploadPath = Paths.get(props.getDir(), "documents");
         if (!Files.exists(uploadPath)) {
             Files.createDirectories(uploadPath);
         }
-
-        String ext      = getExtension(file.getOriginalFilename());
+ 
         String fileName = UUID.randomUUID() + "." + ext;
         Path   filePath = uploadPath.resolve(fileName);
-
+ 
         Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
-
+ 
         return "/uploads/documents/" + fileName;
     }
 
