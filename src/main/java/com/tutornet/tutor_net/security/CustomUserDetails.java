@@ -21,10 +21,18 @@ public class CustomUserDetails implements UserDetails {
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        Set<GrantedAuthority> authorities = user.getUserRoles().stream()
+        Set<GrantedAuthority> authorities = new HashSet<>();
+
+        // Map Permissions
+        user.getUserRoles().stream()
                 .flatMap(ur -> ur.getRole().getPermissions().stream())
                 .map(p -> new SimpleGrantedAuthority(p.getSlug()))
-                .collect(Collectors.toSet());
+                .forEach(authorities::add);
+
+        // Map Roles with ROLE_ prefix
+        user.getUserRoles().stream()
+                .map(ur -> new SimpleGrantedAuthority("ROLE_" + ur.getRole().getSlug()))
+                .forEach(authorities::add);
 
         // LOG
         System.out.println("=== AUTHORITIES of " + user.getEmail() + ": " + authorities);

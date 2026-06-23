@@ -82,6 +82,11 @@ public final class AuthRequest {
             String refreshToken
     ){}
 
+    public record LogoutRequest(
+            @NotBlank(message = "Refresh token không được để trống")
+            String refreshToken
+    ){}
+
     public record ForgotPasswordRequest(
 
             @NotBlank(message = "Email không được để trống")

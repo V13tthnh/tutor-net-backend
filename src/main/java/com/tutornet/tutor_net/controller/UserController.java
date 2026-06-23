@@ -9,7 +9,6 @@ import com.tutornet.tutor_net.service.impl.FileStorageServiceImpl;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -63,5 +62,18 @@ public class UserController {
 
         userService.resetPassword(currentUserId, request);
         return ResponseEntity.ok(ApiResponse.noContent("Đặt lại mật khẩu thành công"));
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<ApiResponse<Void>> deleteSelfAccount(
+            @PathVariable Long id,
+            @Valid @RequestBody UserRequest.DeleteAccountRequest request,
+            @AuthenticationPrincipal CustomUserDetails currentUser
+    ) {
+        if (!id.equals(currentUser.getUser().getId())) {
+            throw new com.tutornet.tutor_net.exception.BusinessException("Bạn không có quyền xoá tài khoản của người khác.");
+        }
+        userService.deleteSelfAccount(id, request);
+        return ResponseEntity.ok(ApiResponse.ok("Tài khoản của bạn đã được xoá thành công.", null));
     }
 }

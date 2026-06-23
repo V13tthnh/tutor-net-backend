@@ -224,6 +224,29 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
+    public void deleteSelfAccount(Long id, DeleteAccountRequest request) {
+        User user = findUserOrThrow(id);
+
+        // Kiểm tra không cho phép tự xoá nếu là Super Admin
+        boolean isSuperAdmin = user.getUserRoles().stream()
+                .anyMatch(ur -> "super_admin".equals(ur.getRoleSlug()));
+        if (isSuperAdmin) {
+            throw new BusinessException("Tài khoản Quản trị viên cấp cao không thể tự xoá");
+        }
+
+        // Kiểm tra mật khẩu xác nhận
+        if (!passwordEncoder.matches(request.password(), user.getPasswordHash())) {
+            throw new BusinessException("Mật khẩu xác nhận không chính xác");
+        }
+
+        int rowsAffected = userRepository.softDeleteById(id);
+        if (rowsAffected == 0) {
+            throw new BusinessException("Tài khoản này đã bị xoá trước đó.");
+        }
+    }
+
+    @Override
+    @Transactional
     public UserDetailResponse assignRole(Long userId, AssignRoleRequest request, Long assignedById) {
         User user       = findUserOrThrow(userId);
         Role role       = roleRepository.findById(request.roleId())

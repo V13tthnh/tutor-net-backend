@@ -5,8 +5,8 @@ spring:
   mail:
     host: smtp.gmail.com
     port: 587
-    username: vietthanh051103@gmail.com # Email hệ thống của bạn
-    password: lwcc llsv xttw emra    # Mật khẩu ứng dụng 16 số của Google
+    username: ${SPRING_MAIL_USERNAME:vietthanh051103@gmail.com} # Email hệ thống của bạn
+    password: ${SPRING_MAIL_PASSWORD:lwcc llsv xttw emra}    # Mật khẩu ứng dụng 16 số của Google
     properties:
       mail:
         smtp:
@@ -57,6 +57,7 @@ jwt:
   refresh-expiration: 604800000
 
 app:
+  allowed-origins: ${APP_ALLOWED_ORIGINS:http://localhost:3000}
   upload:
     dir: ./uploads
     base-url: ${APP_BASE_URL:http://localhost:8080}/uploads

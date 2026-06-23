@@ -17,27 +17,23 @@ public abstract class BasePaymentProcessor {
 
     protected final TransactionRepository transactionRepository;
 
-    // TEMPLATE METHOD
     @Transactional
     public PaymentResponse processPayment(Contract contract, User user, String ipAddress) {
         Transaction txnToProcess;
 
-        // KIỂM TRA CHỐNG RÁC DB: Xem đã có giao dịch PENDING nào của hợp đồng này chưa
         Optional<Transaction> existingPendingTxn = transactionRepository
                 .findTopByContractIdAndStatusOrderByCreatedAtDesc(contract.getId(), TransactionStatus.PENDING);
 
         if (existingPendingTxn.isPresent()) {
-            // Nếu có rồi thì lôi ra xài lại, không tạo dòng mới
             txnToProcess = existingPendingTxn.get();
         } else {
-            // Nếu chưa có thì mới khởi tạo
             String transactionCode = "TXN" + System.currentTimeMillis();
 
             Transaction newTxn = Transaction.builder()
                     .contract(contract)
                     .user(user)
                     .amount(contract.getIntroductionFee())
-                    .paymentMethod(getPaymentMethod()) // Lấy từ lớp con
+                    .paymentMethod(getPaymentMethod())
                     .status(TransactionStatus.PENDING)
                     .transactionCode(transactionCode)
                     .build();
@@ -45,7 +41,6 @@ public abstract class BasePaymentProcessor {
             txnToProcess = transactionRepository.save(newTxn);
         }
 
-        // Uỷ quyền cho lớp con (VNPay) tự build Link thanh toán với mã TXN tương ứng
         String checkoutUrl = buildCheckoutUrl(txnToProcess, ipAddress);
 
         return PaymentResponse.builder()
@@ -54,7 +49,6 @@ public abstract class BasePaymentProcessor {
                 .build();
     }
 
-    // Các hàm lớp con bắt buộc phải ghi đè
     protected abstract PaymentMethod getPaymentMethod();
 
     protected abstract String buildCheckoutUrl(Transaction txn, String ipAddress);

@@ -1,48 +1,80 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" lang="vi">
-<head th:replace="~{email/layout :: head}"></head>
-<body>
-<div class="wrapper">
-    <div class="header">
-        <div class="header-logo">Tutor<span>Net</span></div>
-        <div class="header-badge">Yêu cầu tìm gia sư</div>
-    </div>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Yêu cầu tìm gia sư được duyệt</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+            font-family: Arial, sans-serif;
+            -webkit-font-smoothing: antialiased;
+        }
+        table { border-collapse: collapse; }
+    </style>
+</head>
+<body style="margin: 0; padding: 0; background-color: #f4f4f4; font-family: Arial, sans-serif;">
 
-    <div class="body">
-        <h2>🎉 Yêu cầu của bạn đã được duyệt!</h2>
-        <p>Xin chào <strong th:text="${contactName}">Học viên</strong>,</p>
-        <p>
-            Yêu cầu tìm gia sư môn
-            <strong style="color:#4F46E5;" th:text="${subjectName}">Môn học</strong>
-            của bạn đã được
-            <span class="badge-success"> Chấp thuận</span>
-            và hiện đang hiển thị công khai trên hệ thống.
-        </p>
+<table border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #f4f4f4; padding: 40px 0;">
+    <tr>
+        <td >
+            <table border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #ffffff; border: 1px solid #dddddd;">
 
-        <div class="info-box">
-            <div class="row">
-                <span class="label"> Môn học</span>
-                <strong th:text="${subjectName}">Môn học</strong>
-            </div>
-            <div class="row">
-                <span class="label"> Trạng thái</span>
-                <span class="badge-success"> Đang hiển thị</span>
-            </div>
-        </div>
+                <!-- Header -->
+                <tr>
+                    <td style="padding: 30px 40px 20px 40px; border-bottom: 2px solid #333333;">
+                        <h2 style="margin: 0; color: #333333; font-size: 24px; letter-spacing: 2px; text-transform: uppercase; display: inline;">TutorNet</h2>
+                        <span style="float: right; font-size: 11px; color: #666666; text-transform: uppercase; letter-spacing: 1px; padding-top: 6px;">Yêu cầu tìm gia sư</span>
+                    </td>
+                </tr>
 
-        <p>Các gia sư phù hợp sẽ sớm xem và ứng tuyển vào lớp của bạn. Hãy thường xuyên kiểm tra thông báo!</p>
+                <!-- Body -->
+                <tr>
+                    <td style="padding: 40px 40px 30px 40px; color: #333333; line-height: 1.6; font-size: 15px;">
+                        <p style="margin: 0 0 20px 0; font-size: 17px; font-weight: bold; color: #333333;">Yêu cầu của bạn đã được duyệt!</p>
 
-        <div class="btn-wrap">
-            <a href="http://localhost:3000/student/requests" class="btn"> Xem yêu cầu của bạn</a>
-        </div>
-    </div>
+                        <p style="margin: 0 0 20px 0;">Xin chào <strong th:text="${contactName}">[Học Viên]</strong>,</p>
 
-    <div class="footer">
-        © 2026 TutorNet &nbsp;·&nbsp;
-        <a href="http://localhost:3000">Trang chủ</a> &nbsp;·&nbsp;
-        <a href="http://localhost:3000/support">Hỗ trợ</a><br/>
-        Bạn nhận email này vì có hoạt động liên quan đến tài khoản TutorNet của bạn.
-    </div>
-</div>
+                        <p style="margin: 0 0 20px 0;">Yêu cầu tìm gia sư môn <strong th:text="${subjectName}">[Môn Học]</strong> của bạn đã được chấp thuận và hiện đang hiển thị công khai trên hệ thống TutorNet.</p>
+
+                        <table cellpadding="0" cellspacing="0" style="background-color: #f9f9f9; border-left: 4px solid #333333; margin: 0 0 20px 0;">
+                            <tr>
+                                <td style="padding: 14px 18px; font-size: 14px; color: #333333; line-height: 1.8;">
+                                    <strong>Môn học:</strong> <span th:text="${subjectName}">[Môn Học]</span><br>
+                                    <strong>Trạng thái:</strong> <span style="color: #2d7a2d; font-weight: bold;">Đang hiển thị</span>
+                                </td>
+                            </tr>
+                        </table>
+
+                        <p style="margin: 0 0 20px 0;">Các gia sư phù hợp sẽ sớm xem và ứng tuyển vào lớp của bạn. Hãy thường xuyên kiểm tra thông báo!</p>
+
+                        <table cellpadding="0" cellspacing="0"  style="margin: 30px 0;">
+                            <tr>
+                                <td>
+                                    <a href="http://localhost:3000/account/my-classes"
+                                       style="background-color: #333333; color: #ffffff; text-decoration: none; padding: 12px 30px; font-size: 14px; font-weight: bold; border-radius: 2px; display: inline-block; text-transform: uppercase;">
+                                        Xem yêu cầu của bạn
+                                    </a>
+                                </td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+
+                <!-- Footer -->
+                <tr>
+                    <td style="padding: 20px 40px; background-color: #f9f9f9; border-top: 1px solid #dddddd; color: #666666; font-size: 12px; line-height: 1.5; text-align: center;">
+                        <p style="margin: 0 0 10px 0;">Đây là email tự động từ hệ thống TutorNet. Vui lòng không trả lời email này.</p>
+                        <p style="margin: 0;">Trân trọng,<br>Đội ngũ Vận hành TutorNet.</p>
+                    </td>
+                </tr>
+
+            </table>
+        </td>
+    </tr>
+</table>
+
 </body>
 </html>

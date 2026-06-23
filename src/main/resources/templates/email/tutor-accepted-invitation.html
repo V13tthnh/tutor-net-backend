@@ -1,67 +1,64 @@
 <!DOCTYPE html>
-<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<html xmlns:th="http://www.thymeleaf.org" lang="vi">
 <head>
-    <meta charset="UTF-8"/>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <title>Gia sư đã đồng ý nhận lớp</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gia sư chấp nhận lời mời</title>
     <style>
-        body { margin: 0; padding: 0; background: #f4f4f7; font-family: Arial, sans-serif; }
-        .wrapper { max-width: 600px; margin: 32px auto; background: #ffffff;
-                   border-radius: 8px; overflow: hidden;
-                   box-shadow: 0 2px 8px rgba(0,0,0,.08); }
-        .header { background: #4f46e5; padding: 32px 40px; text-align: center; }
-        .header h1 { margin: 0; color: #ffffff; font-size: 22px; }
-        .body { padding: 32px 40px; color: #333333; font-size: 15px; line-height: 1.6; }
-        .highlight { background: #eef2ff; border-left: 4px solid #4f46e5;
-                     padding: 14px 18px; border-radius: 4px; margin: 20px 0; }
-        .highlight p { margin: 0; font-weight: 600; color: #3730a3; }
-        .cta { text-align: center; margin: 28px 0; }
-        .cta a { background: #4f46e5; color: #ffffff; padding: 13px 30px;
-                 border-radius: 6px; text-decoration: none; font-weight: 600;
-                 font-size: 15px; display: inline-block; }
-        .footer { background: #f4f4f7; text-align: center; padding: 20px 40px;
-                  font-size: 12px; color: #888888; }
+        body { margin: 0; padding: 0; background-color: #f4f4f4; font-family: Arial, sans-serif; -webkit-font-smoothing: antialiased; }
+        table { border-collapse: collapse; }
     </style>
 </head>
-<body>
-<div class="wrapper">
+<body style="margin: 0; padding: 0; background-color: #f4f4f4; font-family: Arial, sans-serif;">
 
-    <div class="header">
-        <h1> Gia sư đã đồng ý nhận lớp!</h1>
-    </div>
+<table border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #f4f4f4; padding: 40px 0;">
+    <tr>
+        <td align="center">
+            <table border="0" cellpadding="0" cellspacing="0" width="600" style="background-color: #ffffff; border: 1px solid #dddddd;">
+                <!-- Header -->
+                <tr>
+                    <td style="padding: 30px 40px 20px 40px; border-bottom: 2px solid #333333;">
+                        <h2 style="margin: 0; color: #333333; font-size: 24px; letter-spacing: 2px; text-transform: uppercase; display: inline;">TutorNet</h2>
+                        <span style="float: right; font-size: 11px; color: #666666; text-transform: uppercase; letter-spacing: 1px; padding-top: 6px;">Chấp Nhận Lời Mời</span>
+                    </td>
+                </tr>
+                <!-- Body -->
+                <tr>
+                    <td style="padding: 40px 40px 30px 40px; color: #333333; line-height: 1.6; font-size: 15px;">
+                        <p style="margin: 0 0 20px 0;">Xin chào <strong th:text="${studentName}">[Tên Học Viên]</strong>,</p>
+                        <p style="margin: 0 0 20px 0;">Chúng tôi vui mừng thông báo rằng gia sư <strong th:text="${tutorName}">[Tên Gia Sư]</strong> đã chính thức <strong>chấp nhận lời mời dạy học</strong> của bạn trên hệ thống TutorNet.</p>
 
-    <div class="body">
-        <p>Xin chào <strong th:text="${studentName}">Phụ huynh</strong>,</p>
+                        <table cellpadding="0" cellspacing="0" width="100%" style="background-color: #f9f9f9; border-left: 4px solid #333333; margin: 0 0 20px 0;">
+                            <tr>
+                                <td style="padding: 14px 18px; font-size: 14px; color: #333333; line-height: 1.8;">
+                                    Gia sư sẽ chủ động liên hệ với bạn trong vòng <strong>24 giờ tới</strong> để trao đổi chi tiết và sắp xếp lịch học thử miễn phí buổi đầu tiên.
+                                </td>
+                            </tr>
+                        </table>
 
-        <p>Chúng tôi vui mừng thông báo rằng gia sư
-            <strong th:text="${tutorName}">Gia sư</strong>
-            đã <strong>chấp nhận lời mời dạy học</strong> của bạn trên hệ thống TutorNet.</p>
+                        <p style="margin: 0 0 20px 0;">Trong thời gian chờ đợi, bạn có thể xem lại thông tin chi tiết lớp học và chuẩn bị không gian học tập thật tốt nhé.</p>
 
-        <div class="highlight">
-            <p>Gia sư sẽ chủ động liên hệ với bạn trong vòng <u>24 giờ</u>
-                để sắp xếp lịch buổi học thử miễn phí đầu tiên.</p>
-        </div>
-
-        <p>Trong thời gian chờ đợi, bạn có thể:</p>
-        <ul>
-            <li>Xem lại thông tin chi tiết lớp học trong tài khoản.</li>
-            <li>Chuẩn bị không gian học tập phù hợp cho con em.</li>
-            <li>Liên hệ hỗ trợ nếu có bất kỳ thắc mắc nào.</li>
-        </ul>
-
-        <div class="cta">
-            <a href="http://localhost:3000/student/classes">Xem chi tiết lớp học</a>
-        </div>
-
-        <p>Cảm ơn bạn đã tin tưởng và sử dụng dịch vụ của TutorNet!</p>
-        <p>Trân trọng,<br/><strong>Đội ngũ TutorNet</strong></p>
-    </div>
-
-    <div class="footer">
-        © 2026 TutorNet. Đây là email tự động, vui lòng không trả lời trực tiếp.<br/>
-        Nếu cần hỗ trợ, liên hệ: <a href="mailto:support@tutornet.com">support@tutornet.com</a>
-    </div>
-
-</div>
+                        <table cellpadding="0" cellspacing="0" style="margin: 30px 0;">
+                            <tr>
+                                <td>
+                                    <a href="http://localhost:3000/account/my-classes" style="background-color: #333333; color: #ffffff; text-decoration: none; padding: 12px 30px; font-size: 14px; font-weight: bold; border-radius: 2px; display: inline-block; text-transform: uppercase;">
+                                        Xem chi tiết lớp học
+                                    </a>
+                                </td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+                <!-- Footer -->
+                <tr>
+                    <td style="padding: 20px 40px; background-color: #f9f9f9; border-top: 1px solid #dddddd; color: #666666; font-size: 12px; line-height: 1.5; text-align: center;">
+                        <p style="margin: 0 0 10px 0;">Đây là email tự động từ hệ thống TutorNet. Vui lòng không trả lời email này.</p>
+                        <p style="margin: 0;">Trân trọng,<br>Đội ngũ Vận hành TutorNet.</p>
+                    </td>
+                </tr>
+            </table>
+        </td>
+    </tr>
+</table>
 </body>
 </html>

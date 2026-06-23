@@ -28,16 +28,10 @@ public interface UserService {
 
     void resetPassword(Long id, ResetPasswordRequest request);
 
-    /**
-     * Soft delete user (set deleted_at).
-     * Không cho phép xoá user đang có session chưa hoàn thành.
-     */
     void deleteUser(Long id);
 
-    /**
-     * Gán 1 role cho user.
-     * @param assignedById ID của admin đang thực hiện gán
-     */
+    void deleteSelfAccount(Long id, DeleteAccountRequest request);
+
     UserDetailResponse assignRole(Long userId, AssignRoleRequest request, Long assignedById);
 
     UserDetailResponse revokeRole(Long userId, Long roleId);

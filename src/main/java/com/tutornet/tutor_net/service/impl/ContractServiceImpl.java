@@ -5,8 +5,11 @@ import com.tutornet.tutor_net.dto.response.AdminContractResponse;
 import com.tutornet.tutor_net.dto.response.ContractResponse;
 import com.tutornet.tutor_net.entity.ClassRequest;
 import com.tutornet.tutor_net.entity.Contract;
+import com.tutornet.tutor_net.entity.Transaction;
 import com.tutornet.tutor_net.entity.User;
 import com.tutornet.tutor_net.enums.ContractStatus;
+import com.tutornet.tutor_net.enums.PaymentMethod;
+import com.tutornet.tutor_net.enums.TransactionStatus;
 import com.tutornet.tutor_net.event.ContractCompletedEvent;
 import com.tutornet.tutor_net.event.ContractSignedEvent;
 import com.tutornet.tutor_net.exception.BadRequestException;
@@ -17,6 +20,7 @@ import com.tutornet.tutor_net.export.pdf.ContractPdfPayload;
 import com.tutornet.tutor_net.mapper.ContractMapper;
 import com.tutornet.tutor_net.repository.ClassRequestRepository;
 import com.tutornet.tutor_net.repository.ContractRepository;
+import com.tutornet.tutor_net.repository.TransactionRepository;
 import com.tutornet.tutor_net.service.ContractService;
 import com.tutornet.tutor_net.visitor.StandardFeeCalculatorVisitor;
 import jakarta.servlet.http.HttpServletResponse;
@@ -35,6 +39,7 @@ import java.time.Instant;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -44,6 +49,7 @@ public class ContractServiceImpl implements ContractService {
 
     private final ContractRepository contractRepository;
     private final ClassRequestRepository classRequestRepo;
+    private final TransactionRepository transactionRepository;
     private final TemplateEngine templateEngine;
     private final FileStorageServiceImpl fileStorageService;
     private final ApplicationEventPublisher eventPublisher;
@@ -135,9 +141,15 @@ public class ContractServiceImpl implements ContractService {
 
     @Override
     @Transactional
-    public void signContractAndGeneratePdf(Long contractId, String ipAddress) {
+    public void signContractAndGeneratePdf(Long contractId, String ipAddress, Long currentUserId) {
         Contract contract = contractRepository.findById(contractId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy hợp đồng #" + contractId));
+
+        // Kiểm tra quyền sở hữu IDOR
+        if (contract.getTutor() == null || contract.getTutor().getUser() == null ||
+                !contract.getTutor().getUser().getId().equals(currentUserId)) {
+            throw BusinessException.forbidden("Bạn không có quyền ký hợp đồng này.");
+        }
 
         if (contract.getStatus() != ContractStatus.DRAFT
                 && contract.getStatus() != ContractStatus.PENDING_SIGNATURE) {
@@ -185,6 +197,26 @@ public class ContractServiceImpl implements ContractService {
         Contract contract = contractRepository.findById(contractId)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy hợp đồng " + contractId));
 
+        String fileName = "Hop_Dong_" + contract.getContractNumber();
+
+        // Nếu hợp đồng đã có file vật lý trong DB, tải trực tiếp file từ ổ đĩa
+        String fileUrl = contract.getContractFileUrl();
+        if (fileUrl != null && !fileUrl.isBlank()) {
+            String relativePath = fileUrl.startsWith("/") ? fileUrl.substring(1) : fileUrl;
+            java.io.File file = new java.io.File(relativePath);
+            if (file.exists() && file.isFile()) {
+                response.setContentType("application/pdf");
+                response.setHeader("Content-Disposition", "attachment; filename=\"" + fileName + ".pdf\"");
+                try {
+                    java.nio.file.Files.copy(file.toPath(), response.getOutputStream());
+                    response.getOutputStream().flush();
+                    return;
+                } catch (IOException e) {
+                    throw new RuntimeException("Lỗi đọc file hợp đồng từ ổ đĩa: " + e.getMessage(), e);
+                }
+            }
+        }
+
         String ip = contract.getIpAddress() != null ? contract.getIpAddress() : "N/A";
         Instant signed = contract.getSignedAt() != null ? contract.getSignedAt() : Instant.now();
         String hash = (contract.getStatus() == ContractStatus.ACTIVE || contract.getStatus() == ContractStatus.COMPLETED)
@@ -193,8 +225,6 @@ public class ContractServiceImpl implements ContractService {
 
         // Gói data và đẩy cho Template Method xuất ra trình duyệt
         ContractPdfPayload payload = new ContractPdfPayload(contract, ip, signed, hash);
-        String fileName = "Hop_Dong_" + contract.getContractNumber();
-
         contractPdfGenerator.exportToHttpResponse(payload, response, fileName);
     }
 
@@ -225,6 +255,33 @@ public class ContractServiceImpl implements ContractService {
             throw new BusinessException("Hợp đồng này đã được xác nhận đóng phí từ trước.");
         }
 
+        // đồng bộ bảng transactions
+        Optional<Transaction> pendingTxn = transactionRepository
+                .findTopByContractIdAndStatusOrderByCreatedAtDesc(contractId, TransactionStatus.PENDING);
+
+        if (pendingTxn.isPresent()) {
+            // Đã có PENDING (Do gia sư từng bấm VNPay nhưng không trả tiền) -> Sửa nó thành SUCCESS
+            Transaction txn = pendingTxn.get();
+            txn.setStatus(TransactionStatus.SUCCESS);
+            txn.setPaymentMethod(PaymentMethod.BANK_TRANSFER); // Ghi nhận là chuyển khoản thủ công
+            txn.setPaidAt(Instant.now());
+            txn.setNote("Admin (ID: " + adminId + ") xác nhận thu tiền thủ công");
+            transactionRepository.save(txn);
+        } else {
+            // Chưa có giao dịch nào -> Tự động sinh mới 1 giao dịch SUCCESS
+            Transaction newTxn = Transaction.builder()
+                    .contract(contract)
+                    .user(contract.getTutor().getUser())
+                    .amount(contract.getIntroductionFee())
+                    .paymentMethod(PaymentMethod.BANK_TRANSFER)
+                    .status(TransactionStatus.SUCCESS)
+                    .transactionCode("MANUAL-HD" + contract.getId() + "-" + System.currentTimeMillis())
+                    .paidAt(Instant.now())
+                    .note("Admin (ID: " + adminId + ") tạo mới và xác nhận thu tiền")
+                    .build();
+            transactionRepository.save(newTxn);
+        }
+
         // Cập nhật trạng thái dòng tiền
         contract.setIsFeePaid(true);
         contract.setPaidAt(Instant.now());
@@ -235,7 +292,6 @@ public class ContractServiceImpl implements ContractService {
         }
 
         contractRepository.save(contract);
-        // Đính kèm logic phát event thông báo in-app hoặc gửi mail biên nhận thu tiền tại đây (nếu có)
     }
 
     @Override
@@ -304,6 +360,24 @@ public class ContractServiceImpl implements ContractService {
                 studentName,
                 tutorName
         ));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public void exportContractPdfForUser(Long contractId, Long userId, HttpServletResponse response) {
+        Contract contract = contractRepository.findById(contractId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy hợp đồng " + contractId));
+
+        boolean isTutor = contract.getTutor() != null && contract.getTutor().getUser() != null &&
+                contract.getTutor().getUser().getId().equals(userId);
+        boolean isStudent = contract.getClassRequest() != null && contract.getClassRequest().getUser() != null &&
+                contract.getClassRequest().getUser().getId().equals(userId);
+
+        if (!isTutor && !isStudent) {
+            throw BusinessException.forbidden("Bạn không có quyền tải xuống hợp đồng này.");
+        }
+
+        exportContractPdf(contractId, response);
     }
 }
 

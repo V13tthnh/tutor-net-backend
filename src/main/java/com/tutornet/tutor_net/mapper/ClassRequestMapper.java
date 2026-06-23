@@ -111,6 +111,48 @@ public class ClassRequestMapper {
         );
     }
 
+    /**
+     * Dùng cho admin xem chi tiết hoặc danh sách yêu cầu lớp học, không che thông tin
+     */
+    public ClassRequestResponse toAdminResponse(ClassRequest entity, int totalApplicants) {
+        if (entity == null) return null;
+
+        Long userId = (entity.getUser() != null) ? entity.getUser().getId() : null;
+        Long tutorId = (entity.getTargetTutor() != null) ? entity.getTargetTutor().getId() : null;
+        String tutorName = (entity.getTargetTutor() != null) ? entity.getTargetTutor().getUser().getFullName() : null;
+        AddressUtils.Parts currentAddr = AddressUtils.parse(entity.getAddressDetail());
+        boolean hasAccount = (entity.getUser() != null);
+
+        return new ClassRequestResponse(
+                entity.getId(),
+                entity.getClassCode(),
+                userId,
+                entity.getContactName(),
+                entity.getContactPhone(),
+                entity.getContactEmail(),
+                entity.getSubject().getId(),
+                entity.getSubject().getName(),
+                entity.getGradeLevel(),
+                entity.getProposedPrice(),
+                entity.getHourlyRate(),
+                entity.getSessionsPerWeek(),
+                entity.getDurationMinutes(),
+                entity.getTeachingMode(),
+                currentAddr.province(),
+                currentAddr.ward(),
+                currentAddr.address(),
+                entity.getStudentNotes(),
+                tutorId,
+                tutorName,
+                entity.getStatus(),
+                entity.getRejectionReason(),
+                totalApplicants,
+                entity.getCreatedAt(),
+                entity.getUpdatedAt(),
+                hasAccount
+        );
+    }
+
 
     /**
      * Dùng riêng cho việc render danh sách lớp học, sử dụng thủ thuật masking để che thông tin nhạy cảm

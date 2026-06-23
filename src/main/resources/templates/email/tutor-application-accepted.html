@@ -3,19 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Thông báo nhận lớp thành công</title>
+    <title>Nhận lớp thành công</title>
     <style>
-        /* Các style cơ bản được đặt ở đây, nhưng phần lớn sẽ được inline để tương thích email client */
-        body {
-            margin: 0;
-            padding: 0;
-            background-color: #f4f4f4;
-            font-family: Arial, sans-serif;
-            -webkit-font-smoothing: antialiased;
-        }
-        table {
-            border-collapse: collapse;
-        }
+        body { margin: 0; padding: 0; background-color: #f4f4f4; font-family: Arial, sans-serif; -webkit-font-smoothing: antialiased; }
+        table { border-collapse: collapse; }
     </style>
 </head>
 <body style="margin: 0; padding: 0; background-color: #f4f4f4; font-family: Arial, sans-serif;">
@@ -24,46 +15,54 @@
     <tr>
         <td align="center">
             <table border="0" cellpadding="0" cellspacing="0" width="600" style="background-color: #ffffff; border: 1px solid #dddddd;">
-
+                <!-- Header -->
                 <tr>
-                    <td align="center" style="padding: 30px 40px 20px 40px; border-bottom: 2px solid #333333;">
-                        <h2 style="margin: 0; color: #333333; font-size: 24px; letter-spacing: 2px; text-transform: uppercase;">TutorNet</h2>
+                    <td style="padding: 30px 40px 20px 40px; border-bottom: 2px solid #333333;">
+                        <h2 style="margin: 0; color: #333333; font-size: 24px; letter-spacing: 2px; text-transform: uppercase; display: inline;">TutorNet</h2>
+                        <span style="float: right; font-size: 11px; color: #666666; text-transform: uppercase; letter-spacing: 1px; padding-top: 6px;">Nhận Lớp Thành Công</span>
                     </td>
                 </tr>
-
+                <!-- Body -->
                 <tr>
                     <td style="padding: 40px 40px 30px 40px; color: #333333; line-height: 1.6; font-size: 15px;">
                         <p style="margin: 0 0 20px 0;">Xin chào Gia sư <strong th:text="${tutorName}">[Tên Gia Sư]</strong>,</p>
+                        <p style="margin: 0 0 20px 0;">Ban quản trị nền tảng TutorNet trân trọng thông báo: Phụ huynh/Học viên <strong th:text="${studentName}">[Tên Học Viên]</strong> đã chính thức <strong>chấp thuận hồ sơ ứng tuyển</strong> của bạn.</p>
 
-                        <p style="margin: 0 0 20px 0;">Ban quản trị nền tảng TutorNet trân trọng thông báo: Phụ huynh/Học viên <strong th:text="${studentName}">[Tên Học Viên]</strong> đã chính thức chấp thuận hồ sơ ứng tuyển của bạn cho lớp học tương ứng.</p>
-
-                        <p style="margin: 0 0 20px 0;">Để hoàn tất thủ tục nhận lớp và được cung cấp thông tin liên hệ chi tiết của khách hàng, vui lòng đăng nhập vào hệ thống và tiến hành xác nhận ký hợp đồng điện tử.</p>
-
-                        <table border="0" cellpadding="0" cellspacing="0" width="100%" style="margin: 30px 0;">
+                        <table cellpadding="0" cellspacing="0" width="100%" style="background-color: #f9f9f9; border-left: 4px solid #333333; margin: 0 0 20px 0;">
                             <tr>
-                                <td align="center">
-                                    <a href="http://localhost:3000/account/contracts" style="background-color: #333333; color: #ffffff; text-decoration: none; padding: 12px 30px; font-size: 14px; font-weight: bold; border-radius: 2px; display: inline-block; text-transform: uppercase;">Xác nhận hợp đồng</a>
+                                <td style="padding: 14px 18px; font-size: 14px; color: #333333; line-height: 1.8;">
+                                    Để hoàn tất thủ tục nhận lớp và được cung cấp thông tin liên hệ chi tiết của khách hàng, bạn vui lòng đăng nhập vào hệ thống và tiến hành <strong>xác nhận ký hợp đồng điện tử</strong>.
+                                </td>
+                            </tr>
+                        </table>
+
+                        <p style="margin: 0 0 20px 0;">Vui lòng truy cập đường dẫn dưới đây để xem hợp đồng nháp và thực hiện thao tác đồng ý.</p>
+
+                        <table cellpadding="0" cellspacing="0" style="margin: 30px 0;">
+                            <tr>
+                                <td>
+                                    <a href="http://localhost:3000/account/contracts" style="background-color: #333333; color: #ffffff; text-decoration: none; padding: 12px 30px; font-size: 14px; font-weight: bold; border-radius: 2px; display: inline-block; text-transform: uppercase;">
+                                        Xác nhận hợp đồng ngay
+                                    </a>
                                 </td>
                             </tr>
                         </table>
 
                         <p style="margin: 0 0 10px 0; font-size: 14px; color: #666666; font-style: italic;">
-                            Lưu ý: Lớp học có thể được chuyển cho ứng viên khác nếu hợp đồng không được xác nhận trong thời hạn quy định.
+                            Lưu ý: Lớp học có thể được chuyển cho ứng viên khác nếu hợp đồng không được xác nhận trong thời hạn quy định của hệ thống.
                         </p>
                     </td>
                 </tr>
-
+                <!-- Footer -->
                 <tr>
                     <td style="padding: 20px 40px; background-color: #f9f9f9; border-top: 1px solid #dddddd; color: #666666; font-size: 12px; line-height: 1.5; text-align: center;">
                         <p style="margin: 0 0 10px 0;">Đây là email tự động từ hệ thống TutorNet. Vui lòng không trả lời email này.</p>
                         <p style="margin: 0;">Trân trọng,<br>Đội ngũ Vận hành TutorNet.</p>
                     </td>
                 </tr>
-
             </table>
         </td>
     </tr>
 </table>
-
 </body>
 </html>

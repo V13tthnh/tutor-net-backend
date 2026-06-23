@@ -19,13 +19,26 @@ import org.springframework.web.bind.annotation.*;
 public class AuthController {
 
     private final AuthService authService;
+    private final com.tutornet.tutor_net.service.RateLimiterService rateLimiterService;
 
-    public AuthController(AuthService authService) {
+    public AuthController(AuthService authService, com.tutornet.tutor_net.service.RateLimiterService rateLimiterService) {
         this.authService = authService;
+        this.rateLimiterService = rateLimiterService;
     }
 
     @PostMapping("/register")
-    public ResponseEntity<ApiResponse<AuthResponse>> register(@RequestBody RegisterRequest request) {
+    public ResponseEntity<ApiResponse<AuthResponse>> register(
+            @RequestBody RegisterRequest request,
+            jakarta.servlet.http.HttpServletRequest servletRequest
+    ) {
+        String ip = servletRequest.getRemoteAddr();
+        String limitKey = "register:ip:" + ip;
+        if (rateLimiterService.isBlocked(limitKey)) {
+            throw new com.tutornet.tutor_net.exception.BusinessException(
+                    "Bạn đã đăng ký quá nhiều lần từ IP này. Vui lòng thử lại sau 15 phút.");
+        }
+        rateLimiterService.recordFailedAttempt(limitKey, 5, 15);
+
         AuthResponse response = authService.registerClient(request);
         return ResponseEntity.ok(ApiResponse.ok(response));
     }
@@ -67,7 +80,17 @@ public class AuthController {
 
     @PostMapping("/forgot-password")
     public ResponseEntity<ApiResponse<String>> forgotPassword(
-            @Valid @RequestBody ForgotPasswordRequest request) {
+            @Valid @RequestBody ForgotPasswordRequest request,
+            jakarta.servlet.http.HttpServletRequest servletRequest
+    ) {
+        String ip = servletRequest.getRemoteAddr();
+        String limitKey = "forgot-password:ip:" + ip;
+        if (rateLimiterService.isBlocked(limitKey)) {
+            throw new com.tutornet.tutor_net.exception.BusinessException(
+                    "Bạn đã yêu cầu đặt lại mật khẩu quá nhiều lần. Vui lòng thử lại sau 15 phút.");
+        }
+        rateLimiterService.recordFailedAttempt(limitKey, 5, 15);
+
         authService.forgotPassword(request);
         // Luôn trả 200 dù email có tồn tại hay không (tránh user enumeration)
         return ResponseEntity.ok(ApiResponse.ok(
@@ -82,17 +105,8 @@ public class AuthController {
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<String> logout(
-            @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false)
-            String authHeader)
-    {
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            return ResponseEntity.badRequest()
-                    .body("Token không hợp lệ");
-        }
-        String token = authHeader.substring(7);
-    
-        authService.logout(token);
+    public ResponseEntity<String> logout(@Valid @RequestBody LogoutRequest request) {
+        authService.logout(request.refreshToken());
         return ResponseEntity.ok("Đăng xuất thành công");
     }
 }

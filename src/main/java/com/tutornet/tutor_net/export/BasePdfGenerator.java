@@ -23,7 +23,7 @@ public abstract class BasePdfGenerator<T> {
     public byte[] generatePdfBytes(T dataPayload) {
         Context ctx = new Context();
         buildContext(ctx, dataPayload);
-        String htmlContent = templateEngine.process("email/" + getTemplateName(), ctx);
+        String htmlContent = templateEngine.process(getTemplateName(), ctx);
         return performRender(htmlContent);
     }
 

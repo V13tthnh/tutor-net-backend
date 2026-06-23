@@ -2,6 +2,7 @@ package com.tutornet.tutor_net.controller;
 
 import com.tutornet.tutor_net.dto.request.TutorRequest.*;
 import com.tutornet.tutor_net.dto.response.ApiResponse;
+import com.tutornet.tutor_net.dto.response.TutorResponse;
 import com.tutornet.tutor_net.dto.response.TutorResponse.*;
 import com.tutornet.tutor_net.security.CustomUserDetails;
 import com.tutornet.tutor_net.service.TutorProfileService;

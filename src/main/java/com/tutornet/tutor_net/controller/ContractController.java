@@ -63,7 +63,21 @@ public class ContractController {
     ) {
         String ipAddress = request.getHeader("X-Forwarded-For");
         if (ipAddress == null || ipAddress.isBlank()) ipAddress = request.getRemoteAddr();
-        contractService.signContractAndGeneratePdf(contractId, ipAddress);
+        contractService.signContractAndGeneratePdf(contractId, ipAddress, userDetails.getUser().getId());
         return ResponseEntity.ok().build();
+    }
+
+    /**
+     * GET /api/v1/contracts/{contractId}/download-pdf
+     * Tải file hợp đồng PDF (dành cho người dùng thường)
+     */
+    @GetMapping("/{contractId}/download-pdf")
+    @PreAuthorize("hasAuthority('contract:read')")
+    public void downloadContractPdf(
+            @PathVariable Long contractId,
+            @AuthenticationPrincipal CustomUserDetails userDetails,
+            jakarta.servlet.http.HttpServletResponse response
+    ) {
+        contractService.exportContractPdfForUser(contractId, userDetails.getUser().getId(), response);
     }
 }

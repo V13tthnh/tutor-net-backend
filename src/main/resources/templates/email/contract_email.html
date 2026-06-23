@@ -2,48 +2,73 @@
 <html lang="vi" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Xác nhận ký kết hợp đồng điện tử</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+            font-family: Arial, sans-serif;
+            -webkit-font-smoothing: antialiased;
+        }
+        table { border-collapse: collapse; }
+    </style>
 </head>
-<body>
-<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px;">
-    <div style="text-align: center; margin-bottom: 20px;">
-        <h2 style="color: #2b6cb0; margin: 0;">HỆ THỐNG KẾT NỐI GIA SƯ TUTORNET</h2>
-        <p style="font-style: italic; color: #718096; margin-top: 5px;">Kết nối tri thức - Kiến tạo tương lai</p>
-    </div>
+<body style="margin: 0; padding: 0; background-color: #f4f4f4; font-family: Arial, sans-serif;">
 
-    <p>Xin chào <strong th:text="${recipientName}">Người nhận</strong>,</p>
+<table border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #f4f4f4; padding: 40px 0;">
+    <tr>
+        <td >
+            <table border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #ffffff; border: 1px solid #dddddd;">
 
-    <p>Hệ thống kết nối gia sư công nghệ <strong>TutorNet</strong> xin trân trọng thông báo:</p>
-    <p style="background-color: #f0fff4; border-left: 4px solid #38a169; padding: 12px; font-weight: bold; color: #276749;">
-        Văn bản Hợp đồng điện tử ba bên cho mã lớp học của bạn đã được ký số chứng thực thành công trên hệ thống.
-    </p>
+                <!-- Header -->
+                <tr>
+                    <td style="padding: 30px 40px 20px 40px; border-bottom: 2px solid #333333;">
+                        <h2 style="margin: 0; color: #333333; font-size: 24px; letter-spacing: 2px; text-transform: uppercase; display: inline;">TutorNet</h2>
+                        <span style="float: right; font-size: 11px; color: #666666; text-transform: uppercase; letter-spacing: 1px; padding-top: 6px;">Hợp đồng điện tử</span>
+                    </td>
+                </tr>
 
-    <table style="width: 100%; border-collapse: collapse; margin: 15px 0;">
-        <tr>
-            <td style="padding: 6px 0; color: #4a5568; width: 150px;">• Mã số hợp đồng:</td>
-            <td style="padding: 6px 0; font-weight: bold; color: #1a202c;" th:text="${contractNumber}">HD-XXXXXX</td>
-        </tr>
-        <tr>
-            <td style="padding: 6px 0; color: #4a5568;">• Trạng thái văn bản:</td>
-            <td style="padding: 6px 0; font-weight: bold; color: #38a169;">ĐÃ HIỆU LỰC (ACTIVE)</td>
-        </tr>
-        <tr>
-            <td style="padding: 6px 0; color: #4a5568;">• Hình thức ký số:</td>
-            <td style="padding: 6px 0; color: #1a202c;">Xác thực tài khoản trực tuyến (Clickwrap Agreement)</td>
-        </tr>
-    </table>
+                <!-- Body -->
+                <tr>
+                    <td style="padding: 40px 40px 30px 40px; color: #333333; line-height: 1.6; font-size: 15px;">
+                        <p style="margin: 0 0 20px 0;">Xin chào <strong th:text="${recipientName}">[Người Nhận]</strong>,</p>
 
-    <p>Tệp sao lưu pháp lý bất biến định dạng <strong>PDF</strong> đã được đính kèm trực tiếp trong email này để bạn có thể tải về, lưu trữ hoặc đối soát chéo bất cứ lúc nào.</p>
+                        <p style="margin: 0 0 20px 0;">Hệ thống TutorNet trân trọng thông báo đến bạn về hợp đồng điện tử ba bên liên quan đến lớp học của bạn đã được ký số chứng thực thành công trên hệ thống.</p>
 
-    <p>Mọi thắc mắc hoặc yêu cầu hỗ trợ kỹ thuật trong quá trình nhận lớp, vui lòng liên hệ ngay với Ban quản trị qua số Hotline: <strong>0999.XXX.XXX</strong> để được phục vụ tốt nhất.</p>
+                        <table cellpadding="0" cellspacing="0" style="background-color: #f9f9f9; border-left: 4px solid #333333; margin: 0 0 20px 0;">
+                            <tr>
+                                <td style="padding: 14px 18px; font-size: 14px; color: #333333; line-height: 1.8;">
+                                    <strong>Mã số hợp đồng:</strong> <span th:text="${contractNumber}">HD-XXXXXX</span><br>
+                                    <strong>Trạng thái:</strong> <span style="color: #2d7a2d; font-weight: bold;">Đã hiệu lực (Active)</span><br>
+                                    <strong>Hình thức ký số:</strong> Xác thực tài khoản trực tuyến (Clickwrap Agreement)
+                                </td>
+                            </tr>
+                        </table>
 
-    <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 20px 0;" />
+                        <p style="margin: 0 0 20px 0;">Tệp sao lưu pháp lý định dạng <strong>PDF</strong> đã được đính kèm trực tiếp trong email này để bạn có thể tải về, lưu trữ hoặc đối soát chéo bất cứ lúc nào.</p>
 
-    <div style="font-size: 12px; color: #a0aec0; text-align: center; line-height: 1.5;">
-        Đây là thư điện tử được gửi tự động từ hệ thống quản lý giao dịch TutorNet.<br/>
-        Vui lòng không phản hồi lại (Reply) email này.<br/>
-        © 2026 Hệ thống Gia sư Công nghệ TutorNet. All rights reserved.
-    </div>
-</div>
+                        <p style="margin: 0 0 20px 0;">Mọi thắc mắc hoặc yêu cầu hỗ trợ kỹ thuật trong quá trình nhận lớp, vui lòng liên hệ ngay với Ban quản trị qua số Hotline: <strong>0999.888.777</strong>.</p>
+
+                        <p style="margin: 0 0 10px 0; font-size: 14px; color: #666666; font-style: italic;">
+                            Lưu ý: Đây là thư điện tử được gửi tự động từ hệ thống. Vui lòng không phản hồi lại email này.
+                        </p>
+                    </td>
+                </tr>
+
+                <!-- Footer -->
+                <tr>
+                    <td style="padding: 20px 40px; background-color: #f9f9f9; border-top: 1px solid #dddddd; color: #666666; font-size: 12px; line-height: 1.5; text-align: center;">
+                        <p style="margin: 0 0 10px 0;">Đây là email tự động từ hệ thống TutorNet. Vui lòng không trả lời email này.</p>
+                        <p style="margin: 0;">Trân trọng,<br>Đội ngũ Vận hành TutorNet.</p>
+                    </td>
+                </tr>
+
+            </table>
+        </td>
+    </tr>
+</table>
+
 </body>
 </html>

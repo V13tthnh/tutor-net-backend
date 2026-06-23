@@ -30,7 +30,8 @@ public class ClassRequest {
             @Size(max = 50, message = "Khối lớp không được vượt quá 50 ký tự")
             String gradeLevel,
 
-            @DecimalMin(value = "0.0", message = "Học phí đề xuất không được là số âm")
+            @NotNull(message = "Học phí đề xuất không được để trống")
+            @DecimalMin(value = "1.0", message = "Học phí đề xuất phải lớn hơn 0")
             BigDecimal proposedPrice,
 
             @Min(1) @Max(7)
