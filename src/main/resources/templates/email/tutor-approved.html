@@ -11,14 +11,19 @@
 </head>
 <body style="margin: 0; padding: 0; background-color: #f4f4f4; font-family: Arial, sans-serif;">
 
+<div style="display: none; max-height: 0px; overflow: hidden;">
+    Chúc mừng bạn! Hồ sơ gia sư của bạn đã chính thức được chấp thuận bởi đội ngũ TutorNet.
+</div>
+
 <table border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #f4f4f4; padding: 40px 0;">
     <tr>
         <td align="center">
             <table border="0" cellpadding="0" cellspacing="0" width="600" style="background-color: #ffffff; border: 1px solid #dddddd;">
                 <tr>
                     <td style="padding: 30px 40px 20px 40px; border-bottom: 2px solid #333333;">
-                        <h2 style="margin: 0; color: #333333; font-size: 24px; letter-spacing: 2px; text-transform: uppercase; display: inline;">TutorNet</h2>
-                        <span style="float: right; font-size: 11px; color: #666666; text-transform: uppercase; letter-spacing: 1px; padding-top: 6px;">Hồ Sơ Gia Sư</span>
+                        <h2 style="margin: 0; color: #333333; font-size: 24px; letter-spacing: 2px; text-transform: uppercase; display: inline-block; vertical-align: middle;">TutorNet</h2>
+                        <!-- Tối ưu hiển thị cho các trình duyệt mail bằng cách dùng text-align thay vì float -->
+                        <span style="display: inline-block; text-align: right; float: right; font-size: 11px; color: #666666; text-transform: uppercase; letter-spacing: 1px; padding-top: 6px; vertical-align: middle;">Hồ Sơ Gia Sư</span>
                     </td>
                 </tr>
                 <tr>
@@ -37,8 +42,8 @@
                         <table cellpadding="0" cellspacing="0" style="margin: 30px 0;">
                             <tr>
                                 <td>
-                                    <a href="http://localhost:3000/tutor/dashboard" style="background-color: #333333; color: #ffffff; text-decoration: none; padding: 12px 30px; font-size: 14px; font-weight: bold; border-radius: 2px; display: inline-block; text-transform: uppercase;">
-                                        Vào trang quản lý
+                                    <a th:href="${profileUrl != null ? profileUrl : 'http://localhost:3000/account/new-cv'}" style="background-color: #333333; color: #ffffff; text-decoration: none; padding: 12px 30px; font-size: 14px; font-weight: bold; border-radius: 2px; display: inline-block; text-transform: uppercase;">
+                                        Xem hồ sơ
                                     </a>
                                 </td>
                             </tr>

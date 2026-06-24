@@ -26,7 +26,7 @@ public class  PaymentReminderJob {
      // "0 * * * * *" -> Chạy lặp lại mỗi 1 phút để test
      // "0 0 8 * * *" -> Khi nào xong, bạn đổi thành chuỗi này để chạy 1 lần vào 8h sáng mỗi ngày
      */
-    @Scheduled(cron = "0 * * * * *")
+    @Scheduled(cron = "0 0 8 * * *")
     @Transactional(readOnly = true)
     public void autoRemindPaymentJob() {
         log.info("--- [Cron Job] Đang thực thi rà soát công nợ ---");

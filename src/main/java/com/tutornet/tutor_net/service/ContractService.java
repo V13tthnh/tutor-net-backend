@@ -40,6 +40,7 @@ public interface ContractService {
     List<AdminContractResponse> getContractsForExport(ContractStatus status, Boolean isFeePaid);
 
     void completeContract(Long contractId);
+    String completeContractByStudent(Long contractId, Long studentUserId);
 
     void exportContractPdf(Long contractId, HttpServletResponse response);
     void exportContractPdfForUser(Long contractId, Long userId, HttpServletResponse response);

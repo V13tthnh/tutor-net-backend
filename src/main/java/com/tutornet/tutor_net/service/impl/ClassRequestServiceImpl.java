@@ -173,7 +173,7 @@ public class ClassRequestServiceImpl implements ClassRequestService {
     public List<ClassRequestDropdownResponse> getMyActiveRequestsForDropdown(Long userId) {
         return classRequestRepo.findDropdownByUserIdAndStatuses(
                 userId,
-                List.of(ClassRequestStatus.PENDING, ClassRequestStatus.APPROVED)
+                List.of(ClassRequestStatus.APPROVED)
         );
     }
 
@@ -416,7 +416,8 @@ public class ClassRequestServiceImpl implements ClassRequestService {
                 mailService.sendClassRequestApprovedEmail(
                         recipientEmail,
                         recipientName,
-                        subjectName
+                        subjectName,
+                        savedRequest.getClassCode()
                 );
             } else {
                 mailService.sendClassRequestRejectedEmail(

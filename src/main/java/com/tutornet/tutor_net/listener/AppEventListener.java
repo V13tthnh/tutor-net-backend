@@ -181,7 +181,7 @@ public class AppEventListener {
 
         // 2. Tạo chuỗi JSON data chứa redirect URL khớp với cấu trúc xử lý của
         // useNotifications.ts
-        String dataJson = "{\"redirect\": \"/classes/" + "\"}";
+        String dataJson = "{\"redirect\": \"/account/my-classes" + "\"}";
 
         // 3. Gọi dịch vụ thông báo đẩy qua WebSocket tới hàng đợi
         // /user/queue/notifications
@@ -201,7 +201,7 @@ public class AppEventListener {
             notificationService.send(event.studentUser(), "new_application",
                     "Có gia sư ứng tuyển!",
                     "Gia sư " + event.tutorName() + " vừa ứng tuyển vào lớp của bạn.",
-                    "{\"redirect\": \"/account/my-classes/" + event.classRequestId() + "\"}");
+                    "{\"redirect\": \"/account/my-classes/" + "\"}");
         }
 
         // Gửi email (cả học viên có tài khoản lẫn vãng lai)
@@ -236,16 +236,22 @@ public class AppEventListener {
 
         log.info("Hợp đồng {} đã chuyển sang COMPLETED. Bắt đầu gửi yêu cầu đánh giá.", event.contractNumber());
 
-        String magicToken = java.util.UUID.randomUUID().toString() + "-" + event.contractId();
+        com.tutornet.tutor_net.entity.Contract contract = contractRepository.findById(event.contractId()).orElse(null);
+        String magicToken;
+        if (contract != null && contract.getGuestReviewToken() != null && !contract.getGuestReviewToken().isBlank()) {
+            magicToken = contract.getGuestReviewToken();
+        } else {
+            magicToken = java.util.UUID.randomUUID().toString() + "-" + event.contractId();
+            try {
+                contractRepository.updateGuestReviewToken(event.contractId(), magicToken);
+            } catch (Exception e) {
+                log.error("Lỗi khi cập nhật Review Token cho HD {}: {}", event.contractNumber(), e.getMessage());
+                return;
+            }
+        }
+
         String reviewLink = "http://localhost:3000/reviews/guest?contractId="
                 + event.contractId() + "&token=" + magicToken;
-
-        try {
-            contractRepository.updateGuestReviewToken(event.contractId(), magicToken);
-        } catch (Exception e) {
-            log.error("Lỗi khi cập nhật Review Token cho HD {}: {}", event.contractNumber(), e.getMessage());
-            return;
-        }
 
         // Gửi notification nếu user có tài khoản
         if (event.studentUserId() != null) {
@@ -323,13 +329,13 @@ public class AppEventListener {
         try {
             // Gửi Email đính kèm tệp tin PDF cho Gia sư
             ContractAttachmentPayload tutorPayload = new ContractAttachmentPayload(event.tutorName(),
-                    event.contractNumber(), event.pdfBytes());
+                    event.contractNumber(), event.pdfBytes(), true);
             contractAttachmentEmailSender.execute(event.tutorEmail(), tutorPayload);
 
             // Gửi Email đính kèm tệp tin PDF cho học viên (Nếu có email)
             if (event.studentEmail() != null && !event.studentEmail().isBlank()) {
                 ContractAttachmentPayload studentPayload = new ContractAttachmentPayload(event.studentName(),
-                        event.contractNumber(), event.pdfBytes());
+                        event.contractNumber(), event.pdfBytes(), false);
                 contractAttachmentEmailSender.execute(event.studentEmail(), studentPayload);
             }
             log.info("Đã gửi email hợp đồng thành công đến các bên liên quan.");
@@ -356,7 +362,7 @@ public class AppEventListener {
                     "Chúc mừng! Phụ huynh đã chọn bạn 🎉",
                     "Phụ huynh " + event.studentName()
                             + " đã đồng ý chọn bạn dạy lớp của họ. Vui lòng xác nhận hợp đồng để nhận lớp.",
-                    "{\"redirect\": \"/account/my-classes\"}" // Dẫn thẳng ra màn quản lý hợp đồng của gia sư
+                    "{\"redirect\": \"/account/contracts\"}" // Dẫn thẳng ra màn quản lý hợp đồng của gia sư
             ));
         }
 

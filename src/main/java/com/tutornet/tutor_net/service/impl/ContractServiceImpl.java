@@ -104,7 +104,7 @@ public class ContractServiceImpl implements ContractService {
 
         // Tính tổng học phí tháng đầu
         // Giả định trung bình 1 lớp học 1 tháng gồm 8 buổi, mỗi buổi 2 giờ. Trung tâm thu phí dịch vụ 40% tháng đầu.
-        BigDecimal hourlyRate = classRequest.getProposedPrice() != null ? classRequest.getProposedPrice() : BigDecimal.ZERO;
+        BigDecimal hourlyRate = classRequest.getHourlyRate() != null ? classRequest.getHourlyRate() : BigDecimal.ZERO;
         BigDecimal estimatedMonthlyTuition = hourlyRate.multiply(BigDecimal.valueOf(2 * 8));
 
         // áp dụng visitor pattern để tính phí
@@ -343,6 +343,8 @@ public class ContractServiceImpl implements ContractService {
         }
 
         contract.setStatus(ContractStatus.COMPLETED);
+        String magicToken = java.util.UUID.randomUUID().toString() + "-" + contract.getId();
+        contract.setGuestReviewToken(magicToken);
         contractRepository.save(contract);
 
         User studentUser = contract.getClassRequest().getUser();
@@ -360,6 +362,52 @@ public class ContractServiceImpl implements ContractService {
                 studentName,
                 tutorName
         ));
+    }
+
+    @Override
+    @Transactional
+    public String completeContractByStudent(Long contractId, Long studentUserId) {
+        Contract contract = contractRepository.findById(contractId)
+                .orElseThrow(() -> new ResourceNotFoundException("Hợp đồng không tồn tại"));
+
+        User studentUser = contract.getClassRequest().getUser();
+        boolean isStudent = studentUser != null && studentUser.getId().equals(studentUserId);
+
+        boolean isTutor = contract.getTutor() != null &&
+                contract.getTutor().getUser() != null &&
+                contract.getTutor().getUser().getId().equals(studentUserId);
+
+        if (!isStudent && !isTutor) {
+            throw BusinessException.forbidden("Bạn không có quyền kết thúc hợp đồng này.");
+        }
+
+        if (contract.getStatus() == ContractStatus.COMPLETED) {
+            return contract.getGuestReviewToken();
+        }
+
+        if (contract.getStatus() != ContractStatus.ACTIVE) {
+            throw new BusinessException("Chỉ có thể hoàn thành hợp đồng đang ở trạng thái ACTIVE");
+        }
+
+        contract.setStatus(ContractStatus.COMPLETED);
+        String magicToken = java.util.UUID.randomUUID().toString() + "-" + contract.getId();
+        contract.setGuestReviewToken(magicToken);
+        contractRepository.save(contract);
+
+        String studentEmail = studentUser != null ? studentUser.getEmail() : contract.getClassRequest().getContactEmail();
+        String studentName = studentUser != null ? studentUser.getFullName() : contract.getClassRequest().getContactName();
+        String tutorName = contract.getTutor().getUser().getFullName();
+
+        eventPublisher.publishEvent(new ContractCompletedEvent(
+                contract.getId(),
+                contract.getContractNumber(),
+                studentUser != null ? studentUser.getId() : null,
+                studentEmail,
+                studentName,
+                tutorName
+        ));
+
+        return magicToken;
     }
 
     @Override

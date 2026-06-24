@@ -108,10 +108,11 @@ public class MailServiceImpl implements MailService {
 
     @Override
     @Async("mailExecutor")
-    public void sendClassRequestApprovedEmail(String toEmail, String contactName, String subjectName) {
+    public void sendClassRequestApprovedEmail(String toEmail, String contactName, String subjectName, String classCode) {
         Context ctx = new Context();
         ctx.setVariable("contactName", contactName);
         ctx.setVariable("subjectName", subjectName);
+        ctx.setVariable("classCode", classCode);
         sendHtmlEmail(toEmail, "TutorNet - Yêu cầu tìm gia sư của bạn đã được duyệt ",
                 "class-request-approved", ctx);
     }

@@ -12,7 +12,7 @@ import java.math.BigDecimal;
  */
 public class StandardFeeCalculatorVisitor implements FeeVisitor {
     private final BigDecimal baseTuition;
-    private double feePercentage = 0.40; // Phí cơ bản mặc định là 40%
+    private double feePercentage = 0.30; // Phí cơ bản mặc định là 30%
 
     public StandardFeeCalculatorVisitor(BigDecimal baseTuition) {
         this.baseTuition = baseTuition;
@@ -24,9 +24,8 @@ public class StandardFeeCalculatorVisitor implements FeeVisitor {
         if (tutor.getEducationLevel() == EduLevel.ASSOCIATE || tutor.getEducationLevel() == EduLevel.HIGH_SCHOOL) {
             feePercentage -= 0.05;
         }
-        // Quy tắc 2: Gia sư có đánh giá trên 4.5 sao & có kinh nghiệm -> Giảm thêm 5% phí để giữ chân
-        if (tutor.getRatingAvg() != null && tutor.getRatingAvg().compareTo(new BigDecimal("4.5")) >= 0
-                && tutor.getExperienceYears() >= 2) {
+        // Quy tắc 2: Gia sư có đánh giá trên 4.5 sao -> Giảm thêm 5% phí để giữ chân
+        if (tutor.getRatingAvg() != null && tutor.getRatingAvg().compareTo(new BigDecimal("4.5")) >= 0) {
             feePercentage -= 0.05;
         }
     }
@@ -34,9 +33,11 @@ public class StandardFeeCalculatorVisitor implements FeeVisitor {
     @Override
     public void visit(ClassRequest classRequest) {
         // Quy tắc 3: Lớp cấp 3 hoặc Luyện thi Đại học khó tìm người dạy -> Hệ thống thu phí cao hơn 5%
-        if (classRequest.getGradeLevel() != null &&
-                (classRequest.getGradeLevel().contains("THPT") || classRequest.getGradeLevel().toUpperCase().contains("LUYỆN THI"))) {
-            feePercentage += 0.05;
+        if (classRequest.getGradeLevel() != null) {
+            String gl = classRequest.getGradeLevel().toUpperCase();
+            if (gl.contains("THPT") || gl.contains("LUYỆN THI") || gl.contains("LỚP 12") || gl.contains("ÔN THI")) {
+                feePercentage += 0.05;
+            }
         }
     }
 
