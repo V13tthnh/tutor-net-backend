@@ -18,7 +18,7 @@ public interface MailService {
     void sendClassRequestRejectedEmail(String toEmail, String contactName, String subjectName, String rejectionReason);
 
     // Gửi mail chấp nhận đăng lớp học
-    void sendClassRequestApprovedEmail(String toEmail, String contactName, String subjectName);
+    void sendClassRequestApprovedEmail(String toEmail, String contactName, String subjectName, String classCode);
 
     // gửi mail mời dạy
     void sendTutorDirectInviteEmail(String tutorEmail, String tutorName, String subjectName);

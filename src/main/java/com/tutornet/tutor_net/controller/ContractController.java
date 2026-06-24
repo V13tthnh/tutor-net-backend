@@ -80,4 +80,18 @@ public class ContractController {
     ) {
         contractService.exportContractPdfForUser(contractId, userDetails.getUser().getId(), response);
     }
+
+    /**
+     * POST /api/v1/contracts/{contractId}/complete
+     * Học viên bấm hoàn thành khóa học để nhận link đánh giá trực tiếp (Phục vụ cả nghiệp vụ và Demo)
+     */
+    @PostMapping("/{contractId}/complete")
+    @PreAuthorize("hasAuthority('contract:read')")
+    public ResponseEntity<ApiResponse<String>> completeContract(
+            @PathVariable Long contractId,
+            @AuthenticationPrincipal CustomUserDetails userDetails
+    ) {
+        String token = contractService.completeContractByStudent(contractId, userDetails.getUser().getId());
+        return ResponseEntity.ok(ApiResponse.ok("Kết thúc khóa học thành công. Vui lòng đánh giá gia sư!", token));
+    }
 }

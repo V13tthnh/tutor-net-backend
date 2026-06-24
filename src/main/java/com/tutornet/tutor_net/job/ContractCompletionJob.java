@@ -27,7 +27,7 @@ public class ContractCompletionJob {
      * Tự động quét và đóng các hợp đồng hết hạn vào 22h00 tối mỗi ngày
      */
 
-//    @Scheduled(cron = "0 */1 * * * ?")
+//  @Scheduled(cron = "0 */1 * * * ?")
     @Scheduled(cron = "0 0 22 * * ?")
     @Transactional
     public void autoCompleteExpiredContracts() {
@@ -48,7 +48,7 @@ public class ContractCompletionJob {
                 contract.setStatus(ContractStatus.COMPLETED);
                 contractRepository.save(contract);
 
-                // Bóc tách dữ liệu triệt để ngay trong Session DB (Ngăn chặn hoàn toàn lỗi delay/lazy load)
+                // Bóc tách dữ liệu triệt để ngay trong Session DB
                 User studentUser = contract.getClassRequest().getUser();
 
                 // Xử lý luồng kép: Nếu là Guest (studentUser == null) thì lấy thông tin vãng lai ngoài ClassRequest

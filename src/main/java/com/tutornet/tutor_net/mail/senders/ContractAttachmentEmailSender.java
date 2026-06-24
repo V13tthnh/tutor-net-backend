@@ -1,5 +1,6 @@
 package com.tutornet.tutor_net.mail.senders;
 
+import com.tutornet.tutor_net.config.VNPayConfig;
 import com.tutornet.tutor_net.mail.BaseEmailSender;
 import com.tutornet.tutor_net.mail.payload.ContractAttachmentPayload;
 import jakarta.mail.MessagingException;
@@ -13,8 +14,11 @@ import org.thymeleaf.context.Context;
 @Component
 public class ContractAttachmentEmailSender extends BaseEmailSender<ContractAttachmentPayload> {
 
-    public ContractAttachmentEmailSender(JavaMailSender mailSender, TemplateEngine templateEngine) {
+    private final VNPayConfig vnPayConfig;
+
+    public ContractAttachmentEmailSender(JavaMailSender mailSender, TemplateEngine templateEngine, VNPayConfig vnPayConfig) {
         super(mailSender, templateEngine);
+        this.vnPayConfig = vnPayConfig;
     }
 
     @Override
@@ -29,6 +33,14 @@ public class ContractAttachmentEmailSender extends BaseEmailSender<ContractAttac
     protected void buildContext(Context ctx, ContractAttachmentPayload p) {
         ctx.setVariable("recipientName", p.recipientName());
         ctx.setVariable("contractNumber", p.contractNumber());
+        ctx.setVariable("isTutor", p.isTutor());
+        
+        if (p.isTutor()) {
+            String returnUrl = vnPayConfig.vnp_ReturnUrl;
+            String basePaymentUrl = returnUrl.substring(0, returnUrl.lastIndexOf("/"));
+            String paymentLink = basePaymentUrl + "/click-pay-email?contractNumber=" + p.contractNumber();
+            ctx.setVariable("paymentLink", paymentLink);
+        }
     }
 
     // GHI ĐÈ HOOK METHOD ĐỂ ĐÍNH KÈM FILE

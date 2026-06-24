@@ -45,12 +45,24 @@
                                     <strong>Hình thức ký số:</strong> Xác thực tài khoản trực tuyến (Clickwrap Agreement)
                                 </td>
                             </tr>
-                        </table>
+                        </table>                        <p style="margin: 0 0 20px 0;">Tệp sao lưu pháp lý định dạng <strong>PDF</strong> đã được đính kèm trực tiếp trong email này để bạn có thể tải về, lưu trữ hoặc đối soát chéo bất cứ lúc nào.</p>
 
-                        <p style="margin: 0 0 20px 0;">Tệp sao lưu pháp lý định dạng <strong>PDF</strong> đã được đính kèm trực tiếp trong email này để bạn có thể tải về, lưu trữ hoặc đối soát chéo bất cứ lúc nào.</p>
+                        <!-- Button thanh toán chỉ hiển thị cho Gia sư -->
+                        <div th:if="${isTutor and paymentLink != null}" style="margin: 30px 0 25px 0;">
+                            <p style="margin: 0 0 15px 0; font-size: 15px;">Để hoàn tất thủ tục nhận lớp và kích hoạt lớp dạy chính thức, quý Gia sư vui lòng thanh toán phí nhận lớp bằng cách nhấp vào nút dưới đây:</p>
+                            <table cellpadding="0" cellspacing="0" style="margin: 0;">
+                                <tr>
+                                    <td>
+                                        <a th:href="${paymentLink}"
+                                           style="background-color: #2d7a2d; color: #ffffff; text-decoration: none; padding: 12px 30px; font-size: 14px; font-weight: bold; border-radius: 4px; display: inline-block; text-transform: uppercase; letter-spacing: 0.5px;">
+                                            Thanh Toán Phí Nhận Lớp
+                                        </a>
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
 
                         <p style="margin: 0 0 20px 0;">Mọi thắc mắc hoặc yêu cầu hỗ trợ kỹ thuật trong quá trình nhận lớp, vui lòng liên hệ ngay với Ban quản trị qua số Hotline: <strong>0999.888.777</strong>.</p>
-
                         <p style="margin: 0 0 10px 0; font-size: 14px; color: #666666; font-style: italic;">
                             Lưu ý: Đây là thư điện tử được gửi tự động từ hệ thống. Vui lòng không phản hồi lại email này.
                         </p>

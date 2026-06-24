@@ -20,6 +20,7 @@ import com.tutornet.tutor_net.repository.ContractRepository;
 import com.tutornet.tutor_net.repository.TutorProfileRepository;
 import com.tutornet.tutor_net.security.CustomUserDetails;
 import com.tutornet.tutor_net.service.ClassApplicationService;
+import com.tutornet.tutor_net.visitor.StandardFeeCalculatorVisitor;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.core.Authentication;
@@ -233,7 +234,14 @@ public class ClassApplicationServiceImpl implements ClassApplicationService {
 
         // 6. GIAI ĐOẠN 3 (BƯỚC ĐỆM): Tự động tạo Hợp đồng chờ ký số
         BigDecimal hourlyRate = classRequest.getHourlyRate() != null ? classRequest.getHourlyRate() : classRequest.getProposedPrice();
-        BigDecimal introFee = hourlyRate.multiply(BigDecimal.valueOf(16)).multiply(BigDecimal.valueOf(0.40));
+        BigDecimal estimatedMonthlyTuition = hourlyRate.multiply(BigDecimal.valueOf(16));
+
+        StandardFeeCalculatorVisitor feeVisitor = new StandardFeeCalculatorVisitor(estimatedMonthlyTuition);
+        classRequest.accept(feeVisitor);
+        if (selectedApplication.getTutor() != null) {
+            selectedApplication.getTutor().accept(feeVisitor);
+        }
+        BigDecimal introFee = feeVisitor.getCalculatedFee();
         String contractNumber = "HD-" + LocalDate.now().getYear() + "-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
 
         Contract contract = Contract.builder()

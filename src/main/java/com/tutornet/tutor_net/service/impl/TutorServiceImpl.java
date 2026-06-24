@@ -38,13 +38,25 @@ public class TutorServiceImpl implements TutorService {
         TutorProfile tutor = tutorProfileRepository.findById(tutorId)
                 .orElseThrow(() -> new ResourceNotFoundException("Gia sư không tồn tại"));
 
-        if (studentUserId != null && studentUserId.equals(tutor.getUser().getId())) {
+        if (studentUserId == null) {
+            throw new BusinessException("Bạn cần đăng nhập để thực hiện chức năng này");
+        }
+
+        if (studentUserId.equals(tutor.getUser().getId())) {
             throw new BusinessException("Bạn không thể tự gửi lời mời dạy học cho chính mình");
         }
 
         // Lấy thông tin Lớp học từ Dropdown mà học viên chọn
         ClassRequest classRequest = classRequestRepository.findById(request.classRequestId())
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy yêu cầu lớp học để liên kết"));
+
+        if (classRequest.getUser() == null || !classRequest.getUser().getId().equals(studentUserId)) {
+            throw new BusinessException("Bạn không có quyền sử dụng lớp học này để mời gia sư");
+        }
+
+        if (classRequest.getStatus() != ClassRequestStatus.APPROVED) {
+            throw new BusinessException("Lớp học phải được phê duyệt trước khi mời gia sư dạy");
+        }
 
         // logic chặn spam mời gia sư
         boolean isAlreadyPending = invitationRepository.existsByClassRequest_IdAndTutor_IdAndStatus(
