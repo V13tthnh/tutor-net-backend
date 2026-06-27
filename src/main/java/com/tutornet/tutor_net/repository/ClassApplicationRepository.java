@@ -8,6 +8,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface ClassApplicationRepository extends JpaRepository<ClassApplication, Long> {
@@ -22,4 +23,9 @@ public interface ClassApplicationRepository extends JpaRepository<ClassApplicati
     int countByClassRequestId(Long requestId);
     List<ClassApplication> findByClassRequestIdOrderByCreatedAtDesc(Long requestId);
     List<ClassApplication> findByClassRequestIdAndStatus(Long requestId, ApplicationStatus status);
+
+    @Query("SELECT ca FROM ClassApplication ca " +
+            "JOIN FETCH ca.tutor t " +
+            "WHERE ca.id = :id")
+    Optional<ClassApplication> findByIdWithTutor(@Param("id") Long id);
 }

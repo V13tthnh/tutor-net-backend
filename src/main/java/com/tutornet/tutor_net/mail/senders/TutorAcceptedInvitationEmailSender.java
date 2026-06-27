@@ -16,5 +16,7 @@ public class TutorAcceptedInvitationEmailSender extends BaseEmailSender<StudentT
     @Override protected void buildContext(Context ctx, StudentTutorPayload p) {
         ctx.setVariable("studentName", p.studentName());
         ctx.setVariable("tutorName", p.tutorName());
+        ctx.setVariable("isGuest", p.isGuest());
+        ctx.setVariable("actionUrl", p.actionUrl());
     }
 }

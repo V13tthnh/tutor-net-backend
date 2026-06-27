@@ -20,8 +20,10 @@ public class StandardFeeCalculatorVisitor implements FeeVisitor {
 
     @Override
     public void visit(TutorProfile tutor) {
-        // Quy tắc 1: Sinh viên (Cao đẳng / THPT) thì thu phí rẻ hơn để hỗ trợ (giảm 5%)
-        if (tutor.getEducationLevel() == EduLevel.ASSOCIATE || tutor.getEducationLevel() == EduLevel.HIGH_SCHOOL) {
+        // Quy tắc 1: Sinh viên/Học sinh (Cao đẳng / THPT / Đại học) thì thu phí rẻ hơn để hỗ trợ (giảm 5%)
+        if (tutor.getEducationLevel() == EduLevel.HIGH_SCHOOL
+                || tutor.getEducationLevel() == EduLevel.ASSOCIATE
+                || tutor.getEducationLevel() == EduLevel.UNIVERSITY) {
             feePercentage -= 0.05;
         }
         // Quy tắc 2: Gia sư có đánh giá trên 4.5 sao -> Giảm thêm 5% phí để giữ chân
@@ -34,8 +36,8 @@ public class StandardFeeCalculatorVisitor implements FeeVisitor {
     public void visit(ClassRequest classRequest) {
         // Quy tắc 3: Lớp cấp 3 hoặc Luyện thi Đại học khó tìm người dạy -> Hệ thống thu phí cao hơn 5%
         if (classRequest.getGradeLevel() != null) {
-            String gl = classRequest.getGradeLevel().toUpperCase();
-            if (gl.contains("THPT") || gl.contains("LUYỆN THI") || gl.contains("LỚP 12") || gl.contains("ÔN THI")) {
+            String gl = classRequest.getGradeLevel().toLowerCase();
+            if (gl.contains("thpt") || gl.contains("luyện thi") || gl.contains("ôn thi")) {
                 feePercentage += 0.05;
             }
         }

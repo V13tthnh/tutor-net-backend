@@ -140,7 +140,9 @@ public class AppEventListener {
 
             // Gửi email thông báo cho học viên (cả khách vãng lai)
             if (event.studentEmail() != null && !event.studentEmail().isBlank()) {
-                StudentTutorPayload payload = new StudentTutorPayload(event.studentName(), event.tutorName(), "");
+                boolean isGuest = (event.studentUser() == null);
+                String url = isGuest ? "http://localhost:3000/auth/register" : "http://localhost:3000/account/my-classes/" + event.classRequestId();
+                StudentTutorPayload payload = new StudentTutorPayload(event.studentName(), event.tutorName(), "", isGuest, url);
                 tutorAcceptedInvitationEmailSender.execute(event.studentEmail(), payload);
             }
 
@@ -206,8 +208,10 @@ public class AppEventListener {
 
         // Gửi email (cả học viên có tài khoản lẫn vãng lai)
         if (event.studentEmail() != null && !event.studentEmail().isBlank()) {
+            boolean isGuest = (event.studentUser() == null);
+            String url = isGuest ? "http://localhost:3000/auth/register" : "http://localhost:3000/account/my-classes";
             StudentTutorPayload payload = new StudentTutorPayload(
-                    event.studentName(), event.tutorName(), null);
+                    event.studentName(), event.tutorName(), null, isGuest, url);
             tutorAppliedEmailSender.execute(event.studentEmail(), payload);
         }
     }
@@ -301,7 +305,9 @@ public class AppEventListener {
 
         // Gửi email thông báo cho học viên (cả khách vãng lai)
         if (event.studentEmail() != null && !event.studentEmail().isBlank()) {
-            StudentTutorPayload payload = new StudentTutorPayload(event.studentName(), event.tutorName(), "");
+            boolean isGuest = (event.studentUser() == null);
+            String url = isGuest ? "http://localhost:3000/auth/register" : "http://localhost:3000/account/my-classes/" + event.classRequestId();
+            StudentTutorPayload payload = new StudentTutorPayload(event.studentName(), event.tutorName(), "", isGuest, url);
             tutorAcceptedInvitationEmailSender.execute(event.studentEmail(), payload);
         }
 

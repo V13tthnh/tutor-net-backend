@@ -5,6 +5,8 @@ import com.tutornet.tutor_net.dto.response.ContractResponse;
 import com.tutornet.tutor_net.entity.Contract;
 import org.springframework.stereotype.Component;
 
+import java.math.BigDecimal;
+
 @Component
 public class ContractMapper {
 
@@ -16,10 +18,32 @@ public class ContractMapper {
 
         String partnerName = "";
 
+        boolean isUserTutor = false;
+
         if (entity.getTutor() != null && entity.getTutor().getUser().getId().equals(currentUserId)) {
             partnerName = entity.getClassRequest().getContactName();
+            isUserTutor = true;
         } else if (entity.getTutor() != null) {
             partnerName = entity.getTutor().getUser().getFullName();
+        }
+
+        BigDecimal estimatedMonthlyTuition;
+        if (entity.getClassRequest().getHourlyRate() != null) {
+            double hoursPerSession = (entity.getClassRequest().getDurationMinutes() != null ? entity.getClassRequest().getDurationMinutes() : 120) / 60.0;
+            double sessionsPerMonth = (entity.getClassRequest().getSessionsPerWeek() != null ? entity.getClassRequest().getSessionsPerWeek() : 2) * 4.0;
+            double totalHoursPerMonth = hoursPerSession * sessionsPerMonth;
+            estimatedMonthlyTuition = entity.getClassRequest().getHourlyRate().multiply(BigDecimal.valueOf(totalHoursPerMonth));
+        } else {
+            // Fallback an toàn
+            estimatedMonthlyTuition = entity.getClassRequest().getProposedPrice() != null ? entity.getClassRequest().getProposedPrice() : BigDecimal.ZERO;
+        }
+
+        Integer feePercentage = 0;
+        if (estimatedMonthlyTuition != null && estimatedMonthlyTuition.compareTo(BigDecimal.ZERO) > 0 && entity.getIntroductionFee() != null) {
+            feePercentage = entity.getIntroductionFee()
+                    .multiply(new BigDecimal("100"))
+                    .divide(estimatedMonthlyTuition, 0, java.math.RoundingMode.HALF_UP)
+                    .intValue();
         }
 
         return ContractResponse.builder()
@@ -36,6 +60,8 @@ public class ContractMapper {
                 .contactName(entity.getClassRequest().getContactName())
                 .contactPhone(entity.getClassRequest().getContactPhone())
 
+                .estimatedMonthlyTuition(estimatedMonthlyTuition)
+                .feePercentage(feePercentage) // Dynamic fee percentage
                 .introductionFee(entity.getIntroductionFee())
                 .effectiveDate(entity.getEffectiveDate())
                 .feePaymentDeadline(entity.getFeePaymentDeadline())
@@ -45,6 +71,7 @@ public class ContractMapper {
                 .status(entity.getStatus())
                 .contractFileUrl(entity.getContractFileUrl())
                 .createdAt(entity.getCreatedAt())
+                .isUserTutor(isUserTutor)
                 .build();
     }
 

@@ -17,6 +17,8 @@ public record ContractPreviewResponse(
         BigDecimal tuitionRate,
         String scheduleDetail,
         BigDecimal introductionFee, // Phí giao lớp dự kiến
+        BigDecimal estimatedMonthlyTuition,
+        Integer feePercentage,
 
         String classCode,
         String gradeLevel

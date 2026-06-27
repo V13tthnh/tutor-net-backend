@@ -11,6 +11,7 @@ import com.tutornet.tutor_net.exception.BadRequestException;
 import com.tutornet.tutor_net.exception.ResourceNotFoundException;
 import com.tutornet.tutor_net.mapper.TutorInvitationMapper;
 import com.tutornet.tutor_net.repository.*;
+import com.tutornet.tutor_net.visitor.StandardFeeCalculatorVisitor;
 import com.tutornet.tutor_net.service.ContractService;
 import com.tutornet.tutor_net.service.TutorInvitationService;
 import lombok.RequiredArgsConstructor;
@@ -94,8 +95,22 @@ public class TutorInvitationServiceImpl implements TutorInvitationService {
         classRequestRepository.save(classRequest);
 
         // Khởi tạo Contract vào DB
-        BigDecimal hourlyRate = classRequest.getHourlyRate() != null ? classRequest.getHourlyRate() : classRequest.getProposedPrice();
-        BigDecimal introFee = hourlyRate.multiply(BigDecimal.valueOf(16)).multiply(BigDecimal.valueOf(0.40));
+        BigDecimal estimatedMonthlyTuition;
+        if (classRequest.getHourlyRate() != null) {
+            double hoursPerSession = (classRequest.getDurationMinutes() != null ? classRequest.getDurationMinutes() : 120) / 60.0;
+            double sessionsPerMonth = (classRequest.getSessionsPerWeek() != null ? classRequest.getSessionsPerWeek() : 2) * 4.0;
+            double totalHoursPerMonth = hoursPerSession * sessionsPerMonth;
+            estimatedMonthlyTuition = classRequest.getHourlyRate().multiply(BigDecimal.valueOf(totalHoursPerMonth));
+        } else {
+            estimatedMonthlyTuition = classRequest.getProposedPrice() != null ? classRequest.getProposedPrice() : BigDecimal.ZERO;
+        }
+
+        StandardFeeCalculatorVisitor feeVisitor = new StandardFeeCalculatorVisitor(estimatedMonthlyTuition);
+        classRequest.accept(feeVisitor);
+        if (invitation.getTutor() != null) {
+            invitation.getTutor().accept(feeVisitor);
+        }
+        BigDecimal introFee = feeVisitor.getCalculatedFee();
         String contractNumber = "HD-" + LocalDate.now().getYear() + "-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
 
         Contract contract = Contract.builder()
@@ -155,8 +170,22 @@ public class TutorInvitationServiceImpl implements TutorInvitationService {
         ClassRequest cr = invitation.getClassRequest();
         User tutorUser = invitation.getTutor().getUser();
 
-        BigDecimal hourlyRate = cr.getHourlyRate() != null ? cr.getHourlyRate() : (cr.getProposedPrice() != null ? cr.getProposedPrice() : BigDecimal.ZERO);
-        BigDecimal introFee = hourlyRate.multiply(BigDecimal.valueOf(16)).multiply(BigDecimal.valueOf(0.40));
+        BigDecimal estimatedMonthlyTuition;
+        if (cr.getHourlyRate() != null) {
+            double hoursPerSession = (cr.getDurationMinutes() != null ? cr.getDurationMinutes() : 120) / 60.0;
+            double sessionsPerMonth = (cr.getSessionsPerWeek() != null ? cr.getSessionsPerWeek() : 2) * 4.0;
+            double totalHoursPerMonth = hoursPerSession * sessionsPerMonth;
+            estimatedMonthlyTuition = cr.getHourlyRate().multiply(BigDecimal.valueOf(totalHoursPerMonth));
+        } else {
+            estimatedMonthlyTuition = cr.getProposedPrice() != null ? cr.getProposedPrice() : BigDecimal.ZERO;
+        }
+
+        StandardFeeCalculatorVisitor feeVisitor = new StandardFeeCalculatorVisitor(estimatedMonthlyTuition);
+        cr.accept(feeVisitor);
+        if (invitation.getTutor() != null) {
+            invitation.getTutor().accept(feeVisitor);
+        }
+        BigDecimal introFee = feeVisitor.getCalculatedFee();
 
         StringBuilder sb = new StringBuilder();
         if (cr.getSessionsPerWeek() != null) {
@@ -169,6 +198,14 @@ public class TutorInvitationServiceImpl implements TutorInvitationService {
 
         boolean revealed = InvitationStatus.ACCEPTED.equals(invitation.getStatus());
 
+        Integer feePercentage = 0;
+        if (estimatedMonthlyTuition != null && estimatedMonthlyTuition.compareTo(BigDecimal.ZERO) > 0 && introFee != null) {
+            feePercentage = introFee
+                    .multiply(new BigDecimal("100"))
+                    .divide(estimatedMonthlyTuition, 0, java.math.RoundingMode.HALF_UP)
+                    .intValue();
+        }
+
         return new ContractPreviewResponse(
                 tutorUser.getFullName(),
                 tutorUser.getBirthYear() != null ? tutorUser.getBirthYear() : 2000,
@@ -179,9 +216,11 @@ public class TutorInvitationServiceImpl implements TutorInvitationService {
                 revealed ? cr.getContactEmail() : TutorInvitationMapper.maskEmail(cr.getContactEmail()),
                 "Địa chỉ chi tiết sẽ hiển thị sau khi ký nhận",
                 cr.getSubject() != null ? cr.getSubject().getName() : "N/A",
-                hourlyRate,
+                cr.getHourlyRate() != null ? cr.getHourlyRate() : (cr.getProposedPrice() != null ? cr.getProposedPrice() : BigDecimal.ZERO),
                 cr.getSessionsPerWeek() + " buổi / tuần",
                 introFee,
+                estimatedMonthlyTuition,
+                feePercentage,
                 cr.getClassCode(),
                 cr.getGradeLevel()
         );
