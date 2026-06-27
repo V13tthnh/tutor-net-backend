@@ -52,6 +52,9 @@ public interface ClassRequestRepository extends JpaRepository<ClassRequest, Long
             Pageable pageable
     );
 
+    @Query("SELECT cr FROM ClassRequest cr LEFT JOIN FETCH cr.targetTutor WHERE cr.id = :id")
+    Optional<ClassRequest> findByIdWithTargetTutor(@Param("id") Long id);
+
     @Query(value = """
         SELECT * FROM class_requests cr
         WHERE (

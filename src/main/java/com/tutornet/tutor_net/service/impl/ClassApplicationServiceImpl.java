@@ -199,7 +199,7 @@ public class ClassApplicationServiceImpl implements ClassApplicationService {
         }
 
         // 2. Kiểm tra Đơn ứng tuyển
-        ClassApplication selectedApplication = applicationRepo.findById(applicationId)
+        ClassApplication selectedApplication = applicationRepo.findByIdWithTutor(applicationId)
                 .orElseThrow(() -> new ResourceNotFoundException("Đơn ứng tuyển không tồn tại."));
 
         if (!selectedApplication.getClassRequest().getId().equals(classRequestId)) {
@@ -233,8 +233,16 @@ public class ClassApplicationServiceImpl implements ClassApplicationService {
         }
 
         // 6. GIAI ĐOẠN 3 (BƯỚC ĐỆM): Tự động tạo Hợp đồng chờ ký số
-        BigDecimal hourlyRate = classRequest.getHourlyRate() != null ? classRequest.getHourlyRate() : classRequest.getProposedPrice();
-        BigDecimal estimatedMonthlyTuition = hourlyRate.multiply(BigDecimal.valueOf(16));
+        BigDecimal estimatedMonthlyTuition;
+        if (classRequest.getHourlyRate() != null) {
+            double hoursPerSession = (classRequest.getDurationMinutes() != null ? classRequest.getDurationMinutes() : 120) / 60.0;
+            double sessionsPerMonth = (classRequest.getSessionsPerWeek() != null ? classRequest.getSessionsPerWeek() : 2) * 4.0;
+            double totalHoursPerMonth = hoursPerSession * sessionsPerMonth;
+            estimatedMonthlyTuition = classRequest.getHourlyRate().multiply(BigDecimal.valueOf(totalHoursPerMonth));
+        } else {
+            // Fallback an toàn: nếu không có hourlyRate, dùng thẳng proposedPrice (vì nó là lương tháng)
+            estimatedMonthlyTuition = classRequest.getProposedPrice() != null ? classRequest.getProposedPrice() : BigDecimal.ZERO;
+        }
 
         StandardFeeCalculatorVisitor feeVisitor = new StandardFeeCalculatorVisitor(estimatedMonthlyTuition);
         classRequest.accept(feeVisitor);

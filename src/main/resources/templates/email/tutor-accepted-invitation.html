@@ -36,13 +36,14 @@
                             </tr>
                         </table>
 
-                        <p style="margin: 0 0 20px 0;">Trong thời gian chờ đợi, bạn có thể xem lại thông tin chi tiết lớp học và chuẩn bị không gian học tập thật tốt nhé.</p>
+                        <p th:if="${isGuest}" style="margin: 0 0 20px 0;">Vui lòng đăng ký tài khoản bằng email này để tiếp tục quá trình học tập.</p>
+                        <p th:unless="${isGuest}" style="margin: 0 0 20px 0;">Trong thời gian chờ đợi, bạn có thể xem lại thông tin chi tiết lớp học và chuẩn bị không gian học tập thật tốt nhé.</p>
 
                         <table cellpadding="0" cellspacing="0" style="margin: 30px 0;">
                             <tr>
                                 <td>
-                                    <a href="http://localhost:3000/account/my-classes" style="background-color: #333333; color: #ffffff; text-decoration: none; padding: 12px 30px; font-size: 14px; font-weight: bold; border-radius: 2px; display: inline-block; text-transform: uppercase;">
-                                        Xem chi tiết lớp học
+                                    <a th:href="${actionUrl}" style="background-color: #333333; color: #ffffff; text-decoration: none; padding: 12px 30px; font-size: 14px; font-weight: bold; border-radius: 2px; display: inline-block; text-transform: uppercase;">
+                                        <span th:text="${isGuest ? 'Đăng ký tài khoản' : 'Xem chi tiết lớp học'}"></span>
                                     </a>
                                 </td>
                             </tr>

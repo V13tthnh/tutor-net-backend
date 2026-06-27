@@ -22,6 +22,8 @@ public record ContractResponse(
         String contactPhone,
 
         // --- Tài chính & Thời gian ---
+        BigDecimal estimatedMonthlyTuition,
+        Integer feePercentage,
         BigDecimal introductionFee,
         Instant effectiveDate,
         Instant feePaymentDeadline,
@@ -31,5 +33,6 @@ public record ContractResponse(
         // --- Trạng thái & File ---
         ContractStatus status,
         String contractFileUrl,
-        Instant createdAt
+        Instant createdAt,
+        Boolean isUserTutor
 ) {}

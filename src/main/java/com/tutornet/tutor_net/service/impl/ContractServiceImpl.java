@@ -30,7 +30,6 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.thymeleaf.TemplateEngine;
 
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -43,14 +42,16 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import lombok.extern.slf4j.Slf4j;
+
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class ContractServiceImpl implements ContractService {
 
     private final ContractRepository contractRepository;
     private final ClassRequestRepository classRequestRepo;
     private final TransactionRepository transactionRepository;
-    private final TemplateEngine templateEngine;
     private final FileStorageServiceImpl fileStorageService;
     private final ApplicationEventPublisher eventPublisher;
     private final ContractMapper contractMapper;
@@ -95,17 +96,24 @@ public class ContractServiceImpl implements ContractService {
         }
 
         // Lấy thông tin chi tiết của lớp học
-        ClassRequest classRequest = classRequestRepo.findById(requestId)
+        ClassRequest classRequest = classRequestRepo.findByIdWithTargetTutor(requestId)
                 .orElseThrow(() -> ResourceNotFoundException.of("Yêu cầu lớp học", requestId));
 
         // Tự động sinh mã hợp đồng pháp lý
         String contractNumber = "HD-" + LocalDate.now().getYear() + "-" +
                 UUID.randomUUID().toString().substring(0, 8).toUpperCase();
 
-        // Tính tổng học phí tháng đầu
-        // Giả định trung bình 1 lớp học 1 tháng gồm 8 buổi, mỗi buổi 2 giờ. Trung tâm thu phí dịch vụ 40% tháng đầu.
-        BigDecimal hourlyRate = classRequest.getHourlyRate() != null ? classRequest.getHourlyRate() : BigDecimal.ZERO;
-        BigDecimal estimatedMonthlyTuition = hourlyRate.multiply(BigDecimal.valueOf(2 * 8));
+        // Tính tổng học phí tháng đầu dựa theo thời lượng thực tế
+        BigDecimal estimatedMonthlyTuition;
+        if (classRequest.getHourlyRate() != null) {
+            double hoursPerSession = (classRequest.getDurationMinutes() != null ? classRequest.getDurationMinutes() : 120) / 60.0;
+            double sessionsPerMonth = (classRequest.getSessionsPerWeek() != null ? classRequest.getSessionsPerWeek() : 2) * 4.0;
+            double totalHoursPerMonth = hoursPerSession * sessionsPerMonth;
+            estimatedMonthlyTuition = classRequest.getHourlyRate().multiply(BigDecimal.valueOf(totalHoursPerMonth));
+        } else {
+            // Fallback an toàn: nếu không có hourlyRate, dùng thẳng proposedPrice (vì nó là lương tháng)
+            estimatedMonthlyTuition = classRequest.getProposedPrice() != null ? classRequest.getProposedPrice() : BigDecimal.ZERO;
+        }
 
         // áp dụng visitor pattern để tính phí
         StandardFeeCalculatorVisitor feeVisitor = new StandardFeeCalculatorVisitor(estimatedMonthlyTuition);
@@ -115,6 +123,9 @@ public class ContractServiceImpl implements ContractService {
         classRequest.getTargetTutor().accept(feeVisitor);
 
         BigDecimal introductionFee = feeVisitor.getCalculatedFee();
+        
+        log.info("Calculated Final Fee: {}", introductionFee);
+        log.info("===================================");
 
         // Cấu hình các mốc thời gian dựa theo đúng văn bản cam kết pháp lý
         Instant effectiveDate = Instant.now(); // Ngày bàn giao lớp học
