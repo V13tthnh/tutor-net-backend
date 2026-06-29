@@ -66,6 +66,21 @@ public class AuthServiceImpl implements AuthService {
             throw new IllegalArgumentException("Mật khẩu xác nhận không khớp");
         }
 
+        // --- SECURITY SANDBOX: WEAK PASSWORD CHECK ---
+        boolean isWeakPasswordAllowed = com.tutornet.tutor_net.util.SecuritySandboxHelper.isVulnerable("weak_password");
+        if (!isWeakPasswordAllowed) {
+            String password = request.password();
+            boolean isValid = password.length() >= 8 
+                && password.matches(".*[A-Z].*") 
+                && password.matches(".*[a-z].*") 
+                && password.matches(".*[0-9].*") 
+                && password.matches(".*[!@#$%^&*()_+\\-=\\[\\]{};':\",./<>?~`|\\\\].*");
+            if (!isValid) {
+                throw new IllegalArgumentException("Mật khẩu quá yếu! Mật khẩu phải dài tối thiểu 8 ký tự, chứa ít nhất 1 chữ hoa, 1 chữ thường, 1 chữ số và 1 ký tự đặc biệt.");
+            }
+        }
+        // --- END SANDBOX ---
+
         if (userRepository.existsByEmail(request.email())) {
             throw new IllegalArgumentException("Email này đã được sử dụng");
         }

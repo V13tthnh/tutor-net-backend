@@ -19,17 +19,53 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.util.List;
 
+import jakarta.persistence.EntityManager;
+import com.tutornet.tutor_net.util.SecuritySandboxHelper;
+import org.springframework.web.bind.annotation.CrossOrigin;
+
 @Service
 @RequiredArgsConstructor
 public class TutorSearchServiceImpl implements TutorSearchService {
 
     private final TutorSearchRepository tutorSearchRepository;
+    private final EntityManager entityManager;
 
     // ── Danh sách tìm kiếm ──────────────────────────────────────────────────
 
     @Override
     public UserRoleResponse.PageResponse<TutorCardResponse> search(
             SearchFilter filter, Pageable pageable) {
+
+        // --- SECURITY SANDBOX: UNION SQL INJECTION ---
+        if (SecuritySandboxHelper.isVulnerable("union_sqli") && filter.keyword() != null && filter.keyword().contains("'")) {
+            try {
+                // Giả lập lổ hổng bằng cách ghép chuỗi trực tiếp
+                String vulnerableQuery = "SELECT u.email, u.password_hash FROM users u WHERE u.full_name = '" + filter.keyword() + "'";
+                List<Object[]> results = entityManager.createNativeQuery(vulnerableQuery).getResultList();
+                
+                // Biến đổi dữ liệu bị rò rỉ thành TutorCard để render lên giao diện
+                List<TutorCardResponse> leakedData = results.stream().map(row -> new TutorCardResponse(
+                        999L, // Fake ID
+                        row[0].toString(), // Tên hiển thị Email
+                        "https://api.dicebear.com/7.x/bottts/svg?seed=hacked",
+                        GenderType.OTHER,
+                        "LEAKED HASH: " + row[1].toString(), // Headline chứa Hash
+                        "Dữ liệu mật khẩu bị lộ do lỗi SQL Injection!",
+                        0, BigDecimal.ZERO, 0, TeachingMode.ONLINE,
+                        java.util.Collections.emptyList(),
+                        java.util.Collections.emptyList(),
+                        java.math.BigDecimal.ZERO
+                )).toList();
+                
+                return new UserRoleResponse.PageResponse<>(
+                        leakedData,
+                        0, 10, leakedData.size(), 1, true
+                );
+            } catch (Exception e) {
+                System.out.println("Sandbox SQLi Exception: " + e.getMessage());
+            }
+        }
+        // --- END SANDBOX ---
 
         Specification<TutorProfile> spec = Specification
                 .where(TutorSearchSpecification.isApproved())

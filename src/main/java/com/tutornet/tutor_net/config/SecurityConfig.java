@@ -56,6 +56,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/payments/webhook/vnpay_ipn").permitAll()
                         .requestMatchers("/api/v1/payments/vnpay-return",
                                 "/api/v1/payments/click-pay-email").permitAll()
+                        .requestMatchers("/api/v1/demo/**").permitAll()
                         .requestMatchers("/error").permitAll()
                         .requestMatchers("/uploads/**").permitAll()
                         .requestMatchers("/ws/**").permitAll()

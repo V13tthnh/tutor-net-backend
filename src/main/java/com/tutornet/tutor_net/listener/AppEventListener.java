@@ -40,13 +40,15 @@ public class AppEventListener {
     private final ApplicationRejectedByAdminEmailSender applicationRejectedByAdminEmailSender;
 
     // ── Auth events ──
-
+ 
+    @Async("mailExecutor")
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void onUserRegistered(UserRegisteredEvent event) {
         log.info("Gửi mail xác thực tới {}", event.email());
         verificationEmailSender.execute(event.email(), new VerificationPayload(event.verificationToken()));
     }
-
+ 
+    @Async("mailExecutor")
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void onPasswordResetRequested(PasswordResetRequestedEvent event) {
         log.info("Gửi mail reset password tới {}", event.email());
