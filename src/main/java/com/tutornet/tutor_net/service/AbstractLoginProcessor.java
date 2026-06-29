@@ -7,9 +7,12 @@ import com.tutornet.tutor_net.entity.Permission;
 import com.tutornet.tutor_net.entity.User;
 import com.tutornet.tutor_net.exception.BusinessException;
 import com.tutornet.tutor_net.repository.UserRepository;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
 import java.time.Instant;
 import java.util.List;
@@ -37,16 +40,38 @@ public abstract class AbstractLoginProcessor {
         this.rateLimiterService = rateLimiterService;
     }
 
+    private String getClientIp() {
+        ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+        if (attributes != null) {
+            HttpServletRequest request = attributes.getRequest();
+            String xff = request.getHeader("X-Forwarded-For");
+            if (xff != null && !xff.isBlank()) {
+                return xff.split(",")[0].trim();
+            }
+            return request.getRemoteAddr();
+        }
+        return "127.0.0.1";
+    }
 
     // TEMPLATE METHOD
     public final AuthResponse processLogin(AuthRequest.LoginRequest request) {
         String rateLimitKey = "login:user:" + request.email();
+        String clientIp = getClientIp();
+        String ipRateLimitKey = "login:ip:" + clientIp;
 
         // Kiểm tra block trước khi làm gì
-        if (rateLimiterService.isBlocked(rateLimitKey)) {
-            throw new BusinessException(
-                    "Đăng nhập sai quá nhiều lần. Vui lòng thử lại sau " + BLOCK_MINUTES + " phút."
-            );
+        boolean isBruteForceActive = com.tutornet.tutor_net.util.SecuritySandboxHelper.isVulnerable("brute_force");
+        if (!isBruteForceActive) {
+            if (rateLimiterService.isBlocked(rateLimitKey)) {
+                throw new BusinessException(
+                        "Đăng nhập sai quá nhiều lần. Vui lòng thử lại sau " + BLOCK_MINUTES + " phút."
+                );
+            }
+            if (rateLimiterService.isBlocked(ipRateLimitKey)) {
+                throw new BusinessException(
+                        "Địa chỉ IP của bạn tạm thời bị khóa do có hành vi bất thường. Vui lòng thử lại sau " + BLOCK_MINUTES + " phút."
+                );
+            }
         }
 
         // Xác thực — bắt lỗi để ghi nhận thất bại
@@ -54,17 +79,23 @@ public abstract class AbstractLoginProcessor {
         try {
             user = authenticate(request.email(), request.password());
         } catch (BadCredentialsException e) {
-            rateLimiterService.recordFailedAttempt(rateLimitKey, MAX_ATTEMPTS, BLOCK_MINUTES);
+            if (!isBruteForceActive) {
+                rateLimiterService.recordFailedAttempt(rateLimitKey, MAX_ATTEMPTS, BLOCK_MINUTES);
+                rateLimiterService.recordFailedAttempt(ipRateLimitKey, MAX_ATTEMPTS, BLOCK_MINUTES);
+            }
             throw new BusinessException("Email hoặc mật khẩu không chính xác");
         }
 
         // Reset khi đăng nhập thành công
-        if (!rateLimiterService.isBlocked(rateLimitKey)) {
-            rateLimiterService.resetAttempts(rateLimitKey);
+        if (isBruteForceActive || (!rateLimiterService.isBlocked(rateLimitKey) && !rateLimiterService.isBlocked(ipRateLimitKey))) {
+            if (!isBruteForceActive) {
+                rateLimiterService.resetAttempts(rateLimitKey);
+                rateLimiterService.resetAttempts(ipRateLimitKey);
+            }
         } else {
             // Đúng mật khẩu nhưng vẫn đang trong thời gian phạt
             throw new BusinessException(
-                    "Tài khoản tạm thời bị khóa. Vui lòng thử lại sau " + BLOCK_MINUTES + " phút."
+                    "Tài khoản hoặc địa chỉ IP của bạn tạm thời bị khóa. Vui lòng thử lại sau " + BLOCK_MINUTES + " phút."
             );
         }
 
@@ -77,6 +108,18 @@ public abstract class AbstractLoginProcessor {
     protected abstract void verifyAccess(User user);
 
     private User authenticate(String email, String password) {
+
+        // --- SECURITY SANDBOX: BYPASS LOGIN (SQL INJECTION) ---
+        if (com.tutornet.tutor_net.util.SecuritySandboxHelper.isVulnerable("bypass_login")) {
+            if (email != null && (email.contains("' OR '1'='1") || email.contains("' OR 1=1"))) {
+                // Giả lập SQL Injection: Lấy phần email thực hoặc fallback về johnsnow9813@gmail.com nếu chỉ nhập "' OR '1'='1"
+                String targetEmail = email.split("'")[0].trim();
+                if (targetEmail.isEmpty()) targetEmail = "johnsnow9813@gmail.com";
+                return userRepository.findByEmailWithRolesAndPermissions(targetEmail)
+                        .orElseThrow(() -> new RuntimeException("Sandbox SQLi: User not found"));
+            }
+        }
+        // --- END SANDBOX ---
 
         authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(email, password)
